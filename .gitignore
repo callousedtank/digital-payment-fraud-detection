@@ -1,0 +1,19 @@
+# Dataset
+data/*.csv
+
+# Trained models
+models/*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Jupyter
+.ipynb_checkpoints/
