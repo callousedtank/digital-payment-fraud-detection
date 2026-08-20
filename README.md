@@ -187,3 +187,52 @@ podman run -p 8000:8000 fraud-api
 * The project uses a virtual environment and does not require modifying the system Python installation.
 * Dataset and trained model artifacts are excluded from version control through `.gitignore`.
 * The API can be run directly with Uvicorn or inside a container.
+
+## Future Enhancements
+
+The current project provides a working local and containerized ML inference pipeline. Future development will focus on improving its production-readiness and ML engineering capabilities.
+
+### 1. CI/CD
+
+- Add GitHub Actions for automated testing
+- Run the test suite on every push and pull request
+- Add automated build validation for the container image
+
+### 2. Logging & Monitoring
+
+- Add structured API logging
+- Track prediction latency and API errors
+- Add health and readiness endpoints
+- Introduce application metrics for monitoring service performance
+
+### 3. Model & Schema Versioning
+
+- Version trained model artifacts instead of overwriting a single model file
+- Track model metadata and training configuration
+- Introduce API/input schema versioning
+- Support rollback to previously validated model versions
+
+### 4. Experiment Tracking
+
+- Track model configurations, datasets, and evaluation metrics
+- Compare multiple machine learning models across experiments
+- Record experiments in a reproducible format
+- Evaluate experiment tracking tools such as MLflow
+
+### Planned Progression
+
+```text
+Current
+  │
+  ├── ML Pipeline
+  ├── FastAPI Inference API
+  ├── Automated Tests
+  └── Containerized Deployment
+        │
+        ▼
+Future
+  │
+  ├── CI/CD
+  ├── Logging & Monitoring
+  ├── Model & Schema Versioning
+  └── Experiment Tracking
