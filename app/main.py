@@ -1,8 +1,9 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from src.predict import load_model, predict_transaction
-
 
 MODEL_PATH = "models/model.joblib"
 
@@ -10,6 +11,14 @@ app = FastAPI(
     title="Digital Payment Fraud Detection API",
     version="1.0.0"
 )
+
+model_path = Path(MODEL_PATH)
+
+if not model_path.exists():
+    raise RuntimeError(
+        f"Model artifact not found: {model_path}. "
+        "Run `python src/train.py` before starting the API."
+    )
 
 artifact = load_model(MODEL_PATH)
 

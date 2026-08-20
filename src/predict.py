@@ -1,7 +1,6 @@
 import joblib
 import pandas as pd
 
-
 MODEL_PATH = "models/model.joblib"
 
 
@@ -39,7 +38,12 @@ if __name__ == "__main__":
 
     df = df.drop(columns=["transaction_id", "user_id"])
 
-    for _, row in df[df["fraud_label"] == 1].head(5).iterrows():
+    samples = pd.concat([
+        df[df["fraud_label"] == 0].head(5),
+        df[df["fraud_label"] == 1].head(5)
+    ])
+
+    for _, row in samples.iterrows():
         actual = row["fraud_label"]
 
         transaction = row.drop("fraud_label").to_dict()

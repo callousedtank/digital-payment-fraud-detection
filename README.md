@@ -38,6 +38,7 @@ digital-payment-fraud-detection/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
+├── requirements-dev.txt
 ├── pytest.ini
 └── README.md
 ```
@@ -87,7 +88,15 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The `requirements.txt` file contains the pinned Python dependencies used by the project.
+The requirements.txt file contains the pinned production dependencies used by the project.
+
+For development and testing, install the additional development dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+The requirements-dev.txt file includes the production dependencies plus development and testing tools such as Pytest and HTTPX.
 
 ### 4. Dataset Setup
 
@@ -174,7 +183,7 @@ podman run -p 8000:8000 fraud-api
 ## Environment Notes
 
 * Python **3.14** is currently used for development.
-* Dependencies are pinned in `requirements.txt` for reproducibility.
+* Dependencies are pinned in `requirements.txt` and `requirements-dev.txt` for reproducibility.
 * The project uses a virtual environment and does not require modifying the system Python installation.
 * Dataset and trained model artifacts are excluded from version control through `.gitignore`.
 * The API can be run directly with Uvicorn or inside a container.
