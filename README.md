@@ -178,5 +178,3 @@ podman run -p 8000:8000 fraud-api
 * The project uses a virtual environment and does not require modifying the system Python installation.
 * Dataset and trained model artifacts are excluded from version control through `.gitignore`.
 * The API can be run directly with Uvicorn or inside a container.
-
-```
