@@ -1,35 +1,41 @@
 # Digital Payment Fraud Detection
 
-An end-to-end machine learning system for detecting fraudulent digital payment transactions from raw transaction data to a versioned, observable, containerized inference API.
+An end-to-end machine learning system for detecting fraudulent digital payment transactions — from preprocessing and imbalance-aware training to a versioned, observable, containerized inference API and live deployment.
 
-This isn't a notebook that trains and scores a model. It's a full pipeline: reproducible preprocessing, imbalance-aware training, an immutable model registry with rollback, a FastAPI inference service with structured logging and Prometheus-style metrics, automated tests, CI validation, and containerized deployment.
+The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation, containerization, and a public deployment.
 
 ## Highlights
 
-- **Imbalance-aware training** — SMOTENC applied correctly on categorical + numeric features (not naive SMOTE), with encoders fit only on training data and evaluated with proper metrics beyond raw accuracy, catching and fixing a model that was silently predicting every transaction as legitimate.
-- **Deterministic preprocessing** — categorical encoding fixed to be reproducible across runs (an issue that previously caused inconsistent accuracy between training runs).
-- **Model registry with rollback** — every training run writes an immutable, versioned artifact and updates a local registry. Any validated version can be re-activated without retraining.
-- **Experiment tracking** — every run is recorded as a reproducible JSONL entry (dataset fingerprint, config, metrics), with a CLI to compare runs across model types.
-- **Production-shaped API** — FastAPI service with Pydantic request validation, structured JSON logging, request/prediction latency tracking, and `/health`, `/ready`, `/metrics` endpoints.
-- **Tested and CI-validated** — automated test suite covering prediction, validation, unknown-category handling, registry resolution/rollback, and health/readiness; GitHub Actions runs the suite and validates the container build on every push.
-- **Containerized** — builds and runs identically under Docker or Podman.
+* **Imbalance-aware training** — SMOTENC handles categorical and numerical features while preserving the correct train/test separation.
+* **Deterministic preprocessing** — categorical encoders are fit only on training data and persisted with the model artifact, with unknown-category handling at inference time.
+* **Model versioning and rollback** — training runs produce versioned artifacts and maintain an active model registry so validated versions can be re-activated without retraining.
+* **Experiment tracking** — training runs record dataset fingerprints, model configuration, feature information, and validation metrics in JSONL format.
+* **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics, and version metadata.
+* **Tested and CI-validated** — automated tests cover prediction, validation, unknown categories, model registry behavior, and operational endpoints. GitHub Actions validates the test suite and container build.
+* **Containerized deployment** — runs with Docker or Podman and is deployed publicly through Render.
+* **Web interface** — the deployed service includes a browser-based transaction analysis interface that sends requests to the same `/predict` inference endpoint.
 
 ## Features
 
-- Data preprocessing and categorical feature encoding
-- Stratified train/test split
-- SMOTENC for handling class imbalance
-- Random Forest classifier
-- Model artifact generation with Joblib
-- FastAPI `/predict` endpoint
-- Request validation with Pydantic
-- Structured request/prediction logging and latency metrics
-- Health (`/health`), readiness (`/ready`), and metrics (`/metrics`) endpoints
-- Versioned model artifacts, metadata, and rollback support
-- Reproducible JSONL experiment tracking and model comparison
-- Automated API tests with Pytest
-- GitHub Actions test and container-build validation
-- Containerized deployment with Podman
+* Data preprocessing and categorical feature encoding
+* Stratified train/test split
+* SMOTENC for class imbalance
+* Random Forest classifier
+* Joblib model artifacts
+* Versioned model registry with rollback support
+* JSONL experiment tracking
+* FastAPI `/predict` inference endpoint
+* Pydantic request validation
+* Unknown-category handling
+* Structured request and prediction logging
+* Request latency metrics
+* `/health`, `/ready`, and `/metrics` endpoints
+* Schema and model version metadata
+* Automated API and infrastructure tests with Pytest
+* GitHub Actions CI
+* Containerized deployment
+* Public Render deployment
+* Browser-based transaction analysis UI
 
 ## Project Structure
 
@@ -37,26 +43,26 @@ This isn't a notebook that trains and scores a model. It's a full pipeline: repr
 digital-payment-fraud-detection/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml               # Test suite + container build validation
+│       └── ci.yml
 ├── app/
-│   └── main.py                  # FastAPI application
+│   └── main.py                  # FastAPI application and web interface
 ├── data/
 │   ├── README.md                # Dataset information
 │   └── *.csv                    # Dataset (not tracked by Git)
 ├── experiments/
-│   └── *.jsonl                  # Experiment tracking records (not tracked by Git)
+│   └── *.jsonl                  # Experiment records (not tracked by Git)
 ├── models/
-│   ├── *.joblib                 # Versioned trained model artifacts (not tracked by Git)
-│   └── model_registry.json      # Model version registry (not tracked by Git)
+│   ├── *.joblib                 # Versioned model artifacts
+│   └── model_registry.json      # Active model registry
 ├── notebooks/
-│   └── fraud_detection.ipynb    # Original exploratory notebook
+│   └── fraud_detection.ipynb    # Exploratory notebook
 ├── src/
-│   ├── preprocessing.py         # Data preprocessing pipeline
-│   ├── train.py                 # Model training + versioning
-│   ├── predict.py               # Model prediction
-│   ├── model_registry.py        # Model version resolution and rollback
-│   ├── experiment_tracking.py   # JSONL experiment recording
-│   └── compare_experiments.py   # Compare experiment runs
+│   ├── preprocessing.py         # Data preprocessing
+│   ├── train.py                # Training and model versioning
+│   ├── predict.py              # Inference
+│   ├── model_registry.py       # Model resolution and rollback
+│   ├── experiment_tracking.py  # Experiment recording
+│   └── compare_experiments.py  # Experiment comparison
 ├── tests/
 │   ├── conftest.py
 │   ├── test_api.py
@@ -81,8 +87,6 @@ cd digital-payment-fraud-detection
 
 ### 2. Create a Virtual Environment
 
-A virtual environment is recommended to keep project dependencies isolated from the system Python installation.
-
 #### Linux / macOS
 
 ```bash
@@ -104,106 +108,97 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-> **Note:** Python executable names differ between operating systems. Linux and macOS commonly use `python3`, while Windows commonly uses `python`.
-
-### 3. Install Python Dependencies
-
-With the virtual environment activated:
+### 3. Install Dependencies
 
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-`requirements.txt` contains the pinned production dependencies used by the project.
-
-For development and testing, install the additional development dependencies:
+For development and testing:
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-`requirements-dev.txt` includes the production dependencies plus development and testing tools such as Pytest and HTTPX2.
-
 ### 4. Dataset Setup
 
-The dataset is intentionally **not included in the Git repository**.
+The dataset is intentionally excluded from Git.
 
-Place the dataset at:
+Place it at:
 
 ```text
 data/Digital_Payment_Fraud_Detection_Dataset.csv
 ```
 
-The expected dataset contains **7,500 transactions and 15 columns**, including the `fraud_label` target column.
+The expected dataset contains **7,500 transactions and 15 columns**, including the `fraud_label` target.
 
 See [`data/README.md`](data/README.md) for dataset information.
 
-### 5. Generate the Model
-
-The trained model is also intentionally excluded from Git. Generate it locally by running:
+### 5. Train the Model
 
 ```bash
 python src/train.py
 ```
 
-This performs preprocessing, train/test splitting, categorical encoding, SMOTENC-based class balancing, and Random Forest training.
+Training performs preprocessing, stratified splitting, categorical encoding, SMOTENC-based balancing, and model training.
 
-Each training run writes an immutable, versioned model artifact and updates the local model registry. Without an explicit version, the version is a UTC timestamp:
+Each run produces a versioned artifact and updates the local model registry:
 
 ```text
 models/model-<version>.joblib
 models/model_registry.json
 ```
 
-Use an explicit version when training a release candidate:
+An explicit version can be supplied:
 
 ```bash
 python src/train.py --model-version 1.0.0
 ```
 
-To roll back the active version after it has been validated:
+A validated version can be activated without retraining:
 
 ```bash
 python src/train.py --activate-version 1.0.0
 ```
 
-The API reads the active model from the registry. Set `MODEL_VERSION` to serve a specific validated version without changing the registry. Existing `models/model.joblib` artifacts remain supported as a legacy fallback.
+The API resolves the active model through the registry. A specific validated version can also be selected through `MODEL_VERSION`.
 
 ### Experiment Tracking
 
-Training records the dataset SHA-256 fingerprint, model configuration, feature set, and validation metrics in `experiments/fraud-detection.jsonl`. These local records are intentionally excluded from Git because they may identify private datasets.
+Training records the dataset SHA-256 fingerprint, model configuration, feature set, and validation metrics in:
 
-Train and compare a second model family with:
+```text
+experiments/fraud-detection.jsonl
+```
+
+Compare experiment runs with:
 
 ```bash
-python src/train.py --model-type logistic_regression --model-version logistic-1
 python src/compare_experiments.py experiments/fraud-detection.jsonl
 ```
 
-The JSONL record format provides a dependency-free, reproducible baseline. MLflow is the next tool to evaluate when a shared experiment server, artifact store, or team-wide experiment UI is needed.
+The current JSONL approach provides a lightweight, dependency-free experiment record. MLflow can be evaluated later if the project requires shared experiment infrastructure or a dedicated tracking UI.
 
 ### 6. Run the API
-
-Start the FastAPI application with Uvicorn:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-The API will be available locally at:
+The local API will be available at:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Interactive API documentation is available at:
+Interactive API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-Operational endpoints are available at:
+Operational endpoints:
 
 ```text
 http://127.0.0.1:8000/health
@@ -211,21 +206,28 @@ http://127.0.0.1:8000/ready
 http://127.0.0.1:8000/metrics
 ```
 
-### 7. Run Tests
+The root page provides the browser-based transaction analysis interface. It collects transaction information and sends it to the existing `/predict` endpoint.
 
-With the virtual environment activated:
+### 7. Run Tests
 
 ```bash
 pytest -v
 ```
 
-The test suite covers prediction requests, input validation, unknown-category handling, health/readiness/metrics endpoints, and model registry resolution and rollback.
+The test suite covers:
+
+* Prediction requests
+* Input validation
+* Unknown categorical values
+* Model registry resolution
+* Model rollback behavior
+* Health and readiness endpoints
+* Metrics endpoint
+* API behavior without requiring the production model artifact during CI
 
 ### 8. Containerized Setup
 
-The project can also be built and run as a container.
-
-The repository uses a standard `Dockerfile` and is compatible with container engines such as **Docker** and **Podman**.
+The project can be built and run with Docker or Podman.
 
 #### Docker
 
@@ -241,23 +243,41 @@ podman build -t fraud-api .
 podman run -p 8000:8000 fraud-api
 ```
 
-> **OS note:** Docker and Podman installation is platform-specific. The commands used to build and run this project remain largely the same once the container engine is installed.
+The container is configured to use the runtime-provided `PORT` when deployed to platforms such as Render.
+
+## Deployment
+
+The application is publicly deployed through Render.
+
+**Live application:**
+https://digital-payment-fraud-detection.onrender.com
+
+The deployment exposes:
+
+* Browser-based transaction analysis at `/`
+* Interactive API documentation at `/docs`
+* Prediction endpoint at `/predict`
+* Health endpoint at `/health`
+* Readiness endpoint at `/ready`
+* Metrics endpoint at `/metrics`
+
+The deployed `/predict` endpoint has been verified against known legitimate and fraudulent transactions from the project dataset.
 
 ## Environment Notes
 
-- Python **3.14** is currently used for development.
-- Dependencies are pinned in `requirements.txt` and `requirements-dev.txt` for reproducibility.
-- The project uses a virtual environment and does not require modifying the system Python installation.
-- Dataset and trained model artifacts are excluded from version control through `.gitignore`.
-- The API can be run directly with Uvicorn or inside a container.
+* Python **3.14** is used for development.
+* Production and development dependencies are pinned separately.
+* Dataset and private training artifacts are excluded from version control.
+* The application can run locally with Uvicorn or inside a container.
+* The deployed service uses a demo model artifact for the public demo environment.
 
 ## Future Enhancements
 
-The current project provides a full local and containerized ML inference
-pipeline with versioning, observability, experiment tracking, and a live
-public demo. Planned next steps:
+The current project covers the core engineering and deployment pipeline. Potential next steps include:
 
-- Release automation (versioned deploys, rollback on the hosted API itself, not just local rollback via the model registry)
-- Export metrics to a monitoring backend with dashboards and alerts
-- API/schema migrations and compatibility guarantees for future versions
-- Evaluate MLflow if a shared tracking server or team-wide UI becomes necessary
+* **Hosted release automation** — automated versioned deployments and rollback at the deployment layer.
+* **Monitoring infrastructure** — export application and prediction metrics to a dedicated monitoring backend with dashboards and alerts.
+* **API evolution** — formal schema migrations and compatibility guarantees as the API changes.
+* **Experiment infrastructure** — evaluate MLflow if shared tracking, artifact storage, or a team-wide experiment UI becomes necessary.
+* **Model lifecycle improvements** — introduce stronger promotion gates and automated validation before a model becomes the active production version.
+* **Web UI improvements** — expand the deployed transaction interface with better result explanations, validation feedback, and a more polished user experience.
