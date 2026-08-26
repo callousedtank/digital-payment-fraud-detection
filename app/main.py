@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.model_registry import resolve_model_path
@@ -46,6 +47,16 @@ metrics_lock = Lock()
 app = FastAPI(
     title="Digital Payment Fraud Detection API",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv("CORS_ALLOW_ORIGINS", "*").split(",")
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 model_path, resolved_model_version = resolve_model_path(

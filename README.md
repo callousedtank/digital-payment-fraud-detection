@@ -4,6 +4,50 @@ An end-to-end machine learning system for detecting fraudulent digital payment t
 
 This isn't a notebook that trains and scores a model. It's a full pipeline: reproducible preprocessing, imbalance-aware training, an immutable model registry with rollback, a FastAPI inference service with structured logging and Prometheus-style metrics, automated tests, CI validation, and containerized deployment.
 
+
+## Live Demo Deployment
+
+Use **Render** for the FastAPI container and **Streamlit Community Cloud** for the browser frontend. The API already enables cross-origin browser calls and the Docker command reads Render's `$PORT` environment variable.
+
+### API: Render Web Service
+
+1. Train a demo model locally after placing the dataset in `data/Digital_Payment_Fraud_Detection_Dataset.csv`:
+
+   ```bash
+   python src/train.py --model-version demo
+   ```
+
+2. Render will not have local ignored artifacts by default. For a portfolio demo, either upload the generated artifact through external storage/persistent disk, or intentionally include one demo artifact and its registry for deployment. If you commit a demo artifact, document it as a demo shortcut and avoid using private or sensitive training data.
+3. Create a Render **Web Service**, connect this GitHub repository, and choose the Docker deploy path.
+4. Set any needed environment variables, for example:
+
+   ```text
+   MODEL_VERSION=demo
+   CORS_ALLOW_ORIGINS=https://your-streamlit-app.streamlit.app
+   ```
+
+   During initial setup, `CORS_ALLOW_ORIGINS=*` is acceptable for testing; tighten it to the deployed Streamlit URL before sharing the demo.
+5. After Render deploys, verify the API from outside your machine:
+
+   ```bash
+   curl https://your-render-service.onrender.com/health
+   curl https://your-render-service.onrender.com/ready
+   ```
+
+### Frontend: Streamlit Community Cloud
+
+1. Deploy `frontend/streamlit_app.py` from this repository in Streamlit Community Cloud.
+2. Use `frontend/requirements.txt` for the frontend dependencies.
+3. Add a Streamlit secret named `API_URL` that points at your Render prediction endpoint:
+
+   ```toml
+   API_URL = "https://your-render-service.onrender.com/predict"
+   ```
+
+4. Open the public Streamlit URL, submit the sample transaction, and confirm the response travels frontend → Render API → model → frontend without a CORS error or timeout.
+
+After both services are live, add your actual Render and Streamlit URLs here so visitors can click straight into the demo.
+
 ## Highlights
 
 - **Imbalance-aware training** — SMOTENC applied correctly on categorical + numeric features (not naive SMOTE), with encoders fit only on training data and evaluated with proper metrics beyond raw accuracy, catching and fixing a model that was silently predicting every transaction as legitimate.
