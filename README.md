@@ -2,7 +2,7 @@
 
 An end-to-end machine learning system for detecting fraudulent digital payment transactions — from preprocessing and imbalance-aware training to a versioned, observable, containerized inference API and live deployment.
 
-The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation, containerization, and a public deployment.
+The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation, containerization and a public deployment.
 
 ## Highlights
 
@@ -206,7 +206,7 @@ http://127.0.0.1:8000/ready
 http://127.0.0.1:8000/metrics
 ```
 
-The root page provides the browser-based transaction analysis interface. It collects transaction information and sends it to the existing `/predict` endpoint.
+The root page provides the browser based transaction analysis interface. It collects transaction information and sends it to the existing `/predict` endpoint.
 
 ### 7. Run Tests
 
