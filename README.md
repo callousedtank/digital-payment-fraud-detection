@@ -13,7 +13,12 @@ The project takes a trained machine learning model and exposes it through a Fast
 - Model artifact generation with Joblib
 - FastAPI `/predict` endpoint
 - Request validation with Pydantic
+- Structured request/prediction logging and latency metrics
+- Health (`/health`), readiness (`/ready`), and metrics (`/metrics`) endpoints
+- Versioned model artifacts, metadata, and rollback support
+- Reproducible JSONL experiment tracking and model comparison
 - Automated API tests with Pytest
+- GitHub Actions test and container-build validation
 - Containerized deployment with Podman
 
 ## Project Structure
@@ -122,11 +127,47 @@ python src/train.py
 
 This performs preprocessing, train/test splitting, categorical encoding, SMOTENC-based class balancing, and Random Forest training.
 
-The resulting model artifact is saved to:
+Each training run writes an immutable, versioned model artifact and updates the
+local model registry. Without an explicit version, the version is a UTC timestamp:
 
 ```text
-models/model.joblib
+models/model-<version>.joblib
+models/model_registry.json
 ```
+
+Use an explicit version when training a release candidate:
+
+```bash
+python src/train.py --model-version 1.0.0
+```
+
+To roll back the active version after it has been validated:
+
+```bash
+python src/train.py --activate-version 1.0.0
+```
+
+The API reads the active model from the registry. Set `MODEL_VERSION` to serve a
+specific validated version without changing the registry. Existing
+`models/model.joblib` artifacts remain supported as a legacy fallback.
+
+### Experiment Tracking
+
+Training records the dataset SHA-256 fingerprint, model configuration, feature
+set, and validation metrics in `experiments/fraud-detection.jsonl`. These local
+records are intentionally excluded from Git because they may identify private
+datasets.
+
+Train and compare a second model family with:
+
+```bash
+python src/train.py --model-type logistic_regression --model-version logistic-1
+python src/compare_experiments.py experiments/fraud-detection.jsonl
+```
+
+The JSONL record format provides a dependency-free, reproducible baseline. MLflow
+is the next tool to evaluate when a shared experiment server, artifact store, or
+team-wide experiment UI is needed.
 
 ### 6. Run the API
 
@@ -146,6 +187,14 @@ Interactive API documentation is available at:
 
 ```text
 http://127.0.0.1:8000/docs
+```
+
+Operational endpoints are available at:
+
+```text
+http://127.0.0.1:8000/health
+http://127.0.0.1:8000/ready
+http://127.0.0.1:8000/metrics
 ```
 
 ### 7. Run Tests
@@ -194,30 +243,26 @@ The current project provides a working local and containerized ML inference pipe
 
 ### 1. CI/CD
 
-- Add GitHub Actions for automated testing
-- Run the test suite on every push and pull request
-- Add automated build validation for the container image
+- GitHub Actions runs the test suite on every push and pull request
+- GitHub Actions validates that the container image builds successfully
+- Add deployment and release automation
 
 ### 2. Logging & Monitoring
 
-- Add structured API logging
-- Track prediction latency and API errors
-- Add health and readiness endpoints
-- Introduce application metrics for monitoring service performance
+- Structured API logging, request/prediction latency, API-error counters, and health/readiness endpoints are available
+- Expose metrics to a monitoring backend and add dashboards/alerts
 
 ### 3. Model & Schema Versioning
 
-- Version trained model artifacts instead of overwriting a single model file
-- Track model metadata and training configuration
-- Introduce API/input schema versioning
-- Support rollback to previously validated model versions
+- Versioned artifact filenames, metadata, and rollback registry are available
+- API responses and readiness checks expose schema version `1.0.0`
+- Add schema migrations and compatibility guarantees for later API versions
 
 ### 4. Experiment Tracking
 
-- Track model configurations, datasets, and evaluation metrics
-- Compare multiple machine learning models across experiments
-- Record experiments in a reproducible format
-- Evaluate experiment tracking tools such as MLflow
+- JSONL records capture model configuration, dataset fingerprint, and evaluation metrics
+- Random Forest and Logistic Regression runs can be compared with the comparison CLI
+- Evaluate MLflow when shared tracking infrastructure is required
 
 ### Planned Progression
 

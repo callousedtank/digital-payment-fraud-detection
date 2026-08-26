@@ -32,6 +32,8 @@ def test_predict_valid_transaction():
 
     assert "fraud_prediction" in data
     assert data["fraud_prediction"] in [0, 1]
+    assert data["schema_version"] == "1.0.0"
+    assert data["model_version"] == "test"
 
 
 def test_predict_missing_fields():
@@ -41,6 +43,25 @@ def test_predict_missing_fields():
     )
 
     assert response.status_code == 422
+
+
+def test_health_and_readiness():
+    assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/ready").json() == {
+        "status": "ready",
+        "model_version": "test",
+        "schema_version": "1.0.0",
+    }
+
+
+def test_metrics_include_request_counters():
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "fraud_api_requests_total" in response.text
+    assert "fraud_api_request_latency_ms_total" in response.text
+    assert "fraud_api_predictions_total" in response.text
+    assert "fraud_api_prediction_latency_ms_total" in response.text
 
 
 def test_predict_unknown_categories():

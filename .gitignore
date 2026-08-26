@@ -3,6 +3,10 @@ data/*.csv
 
 # Trained models
 models/*.joblib
+models/model_registry.json
+
+# Local experiment records
+experiments/*.jsonl
 
 # Python
 __pycache__/
