@@ -6,6 +6,5 @@ __pycache__
 .pytest_cache
 .ipynb_checkpoints
 notebooks
-frontend
 experiments
 *.py[cod]

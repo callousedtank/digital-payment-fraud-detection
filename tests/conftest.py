@@ -8,6 +8,9 @@ class TestModel:
     def predict(self, frame):
         return [0] * len(frame)
 
+    def predict_proba(self, frame):
+        return [[0.9, 0.1]] * len(frame)
+
 
 def pytest_sessionstart(session):
     artifact_path = Path(session.config._tmp_path_factory.getbasetemp()) / "model.joblib"
@@ -35,3 +38,4 @@ def pytest_sessionstart(session):
         artifact_path,
     )
     os.environ["MODEL_PATH"] = str(artifact_path)
+    os.environ["MODEL_REGISTRY_PATH"] = str(artifact_path.with_name("registry.json"))

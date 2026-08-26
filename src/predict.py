@@ -24,10 +24,22 @@ def prepare_input(transaction, artifact):
 
 def predict_transaction(transaction, artifact):
     df = prepare_input(transaction, artifact)
+    model = artifact["model"]
+    probability = float(model.predict_proba(df)[0][1])
+    threshold = float(artifact.get("metadata", {}).get("decision_threshold", 0.5))
+    return int(probability >= threshold)
 
-    prediction = artifact["model"].predict(df)[0]
 
-    return int(prediction)
+def predict_transaction_details(transaction, artifact):
+    df = prepare_input(transaction, artifact)
+    model = artifact["model"]
+    probability = float(model.predict_proba(df)[0][1])
+    threshold = float(artifact.get("metadata", {}).get("decision_threshold", 0.5))
+    return {
+        "fraud_prediction": int(probability >= threshold),
+        "fraud_probability": probability,
+        "decision_threshold": threshold,
+    }
 
 if __name__ == "__main__":
     artifact = load_model(MODEL_PATH)

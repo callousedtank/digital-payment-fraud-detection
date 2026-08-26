@@ -1,19 +1,19 @@
 # Digital Payment Fraud Detection
 
-An end-to-end machine learning system for detecting fraudulent digital payment transactions — from preprocessing and imbalance-aware training to a versioned, observable, containerized inference API and live deployment.
+An end-to-end machine learning system for detecting fraudulent digital payment transactions — from preprocessing and imbalance-aware training to a versioned, observable, containerized inference API and optional Streamlit client.
 
-The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation, containerization and a public deployment.
+The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation, and containerization.
 
 ## Highlights
 
 * **Imbalance-aware training** — SMOTENC handles categorical and numerical features while preserving the correct train/test separation.
 * **Deterministic preprocessing** — categorical encoders are fit only on training data and persisted with the model artifact, with unknown-category handling at inference time.
-* **Model versioning and rollback** — training runs produce versioned artifacts and maintain an active model registry so validated versions can be re-activated without retraining.
+* **Model versioning and rollback** — training runs produce versioned artifacts and maintain an active model registry so evaluated versions can be re-activated without retraining.
 * **Experiment tracking** — training runs record dataset fingerprints, model configuration, feature information, and validation metrics in JSONL format.
 * **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics, and version metadata.
 * **Tested and CI-validated** — automated tests cover prediction, validation, unknown categories, model registry behavior, and operational endpoints. GitHub Actions validates the test suite and container build.
-* **Containerized deployment** — runs with Docker or Podman and is deployed publicly through Render.
-* **Web interface** — the deployed service includes a browser-based transaction analysis interface that sends requests to the same `/predict` inference endpoint.
+* **Containerized services** — Docker Compose starts both the FastAPI inference API and the Streamlit client.
+* **Web interface** — the separate Streamlit client sends requests to the same `/predict` inference endpoint.
 
 ## Features
 
@@ -34,8 +34,7 @@ The project goes beyond a notebook workflow. It includes reproducible preprocess
 * Automated API and infrastructure tests with Pytest
 * GitHub Actions CI
 * Containerized deployment
-* Public Render deployment
-* Browser-based transaction analysis UI
+* Docker Compose API and Streamlit client setup
 
 ## Project Structure
 
@@ -45,7 +44,11 @@ digital-payment-fraud-detection/
 │   └── workflows/
 │       └── ci.yml
 ├── app/
-│   └── main.py                  # FastAPI application and web interface
+│   └── main.py                  # FastAPI application
+├── frontend/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── streamlit_app.py         # Streamlit client
 ├── data/
 │   ├── README.md                # Dataset information
 │   └── *.csv                    # Dataset (not tracked by Git)
@@ -70,6 +73,7 @@ digital-payment-fraud-detection/
 │   └── test_experiment_tracking.py
 ├── Dockerfile
 ├── docker-compose.yml
+├── render.yaml                # Render API and Streamlit service definitions
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── pytest.ini
@@ -138,10 +142,14 @@ See [`data/README.md`](data/README.md) for dataset information.
 ### 5. Train the Model
 
 ```bash
-python src/train.py
+python -m src.train
 ```
 
-Training performs preprocessing, stratified splitting, categorical encoding, SMOTENC-based balancing, and model training.
+Training performs schema checks, stratified splitting, categorical encoding, SMOTENC-based balancing, and model training. It reports accuracy, precision, recall, F1, ROC-AUC, and average precision; do not promote a model based on accuracy alone.
+
+### Model-quality note
+
+The bundled dataset is highly imbalanced and the available non-identifier features currently show very limited fraud signal. Treat the bundled demo model as a technical demonstration, not a production fraud-decision system. Before production use, retrain and evaluate with representative labelled transactions and compare PR-AUC, fraud precision/recall, F1, and the confusion matrix against the legitimate-only baseline.
 
 Each run produces a versioned artifact and updates the local model registry:
 
@@ -153,16 +161,16 @@ models/model_registry.json
 An explicit version can be supplied:
 
 ```bash
-python src/train.py --model-version 1.0.0
+python -m src.train --model-version 1.0.0
 ```
 
-A validated version can be activated without retraining:
+An evaluated version can be activated without retraining:
 
 ```bash
-python src/train.py --activate-version 1.0.0
+python -m src.train --activate-version 1.0.0
 ```
 
-The API resolves the active model through the registry. A specific validated version can also be selected through `MODEL_VERSION`.
+The API resolves the active model through the registry. A specific evaluated version can also be selected through `MODEL_VERSION`.
 
 ### Experiment Tracking
 
@@ -175,7 +183,7 @@ experiments/fraud-detection.jsonl
 Compare experiment runs with:
 
 ```bash
-python src/compare_experiments.py experiments/fraud-detection.jsonl
+python -m src.compare_experiments experiments/fraud-detection.jsonl
 ```
 
 The current JSONL approach provides a lightweight, dependency-free experiment record. MLflow can be evaluated later if the project requires shared experiment infrastructure or a dedicated tracking UI.
@@ -206,7 +214,15 @@ http://127.0.0.1:8000/ready
 http://127.0.0.1:8000/metrics
 ```
 
-The root page provides the browser based transaction analysis interface. It collects transaction information and sends it to the existing `/predict` endpoint.
+The root path returns API metadata. Run the separate Streamlit client for the browser-based transaction interface:
+
+```bash
+streamlit run frontend/streamlit_app.py
+```
+
+Set `API_URL` to point the client at a different API endpoint; it defaults to the public demo endpoint.
+
+`/predict` returns the binary `fraud_prediction`, `fraud_probability`, and the model's `decision_threshold`, so clients can present both the decision and supporting risk score.
 
 ### 7. Run Tests
 
@@ -243,33 +259,27 @@ podman build -t fraud-api .
 podman run -p 8000:8000 fraud-api
 ```
 
+#### Docker Compose (API + Streamlit client)
+
+```bash
+docker compose up --build
+```
+
+The API is available at `http://127.0.0.1:8000` and the Streamlit client at `http://127.0.0.1:8501`.
+
 The container is configured to use the runtime-provided `PORT` when deployed to platforms such as Render.
 
 ## Deployment
 
-The application is publicly deployed through Render.
-
-**Live application:**
-https://digital-payment-fraud-detection.onrender.com
-
-The deployment exposes:
-
-* Browser-based transaction analysis at `/`
-* Interactive API documentation at `/docs`
-* Prediction endpoint at `/predict`
-* Health endpoint at `/health`
-* Readiness endpoint at `/ready`
-* Metrics endpoint at `/metrics`
-
-The deployed `/predict` endpoint has been verified against known legitimate and fraudulent transactions from the project dataset.
+The supplied `render.yaml` defines two simple Render web services: the API and the Streamlit UI. Confirm that the API service URL matches the `API_URL` value before applying it. The API exposes interactive documentation at `/docs`, prediction at `/predict`, and health, readiness, and metrics endpoints at `/health`, `/ready`, and `/metrics`.
 
 ## Environment Notes
 
 * Python **3.14** is used for development.
 * Production and development dependencies are pinned separately.
-* Dataset and private training artifacts are excluded from version control.
+* The dataset and locally trained artifacts are excluded from version control. A tracked demo artifact supports the API demonstration.
 * The application can run locally with Uvicorn or inside a container.
-* The deployed service uses a demo model artifact for the public demo environment.
+* The tracked demo model artifact is intended for local and containerized demonstrations.
 
 ## Future Enhancements
 

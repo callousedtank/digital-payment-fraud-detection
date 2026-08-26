@@ -1,6 +1,6 @@
 import argparse
 
-from experiment_tracking import load_experiments
+from src.experiment_tracking import load_experiments
 
 
 def main():

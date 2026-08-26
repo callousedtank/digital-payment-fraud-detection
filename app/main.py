@@ -8,10 +8,10 @@ from threading import Lock
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.model_registry import resolve_model_path
-from src.predict import load_model, predict_transaction
+from src.predict import load_model, predict_transaction_details
 
 LEGACY_MODEL_PATH = os.getenv("MODEL_PATH", "models/model.joblib")
 MODEL_VERSION = os.getenv("MODEL_VERSION")
@@ -68,7 +68,7 @@ model_path, resolved_model_version = resolve_model_path(
 if not model_path.exists():
     raise RuntimeError(
         f"Model artifact not found: {model_path}. "
-        "Run `python src/train.py` before starting the API."
+        "Run `python -m src.train` before starting the API."
     )
 
 artifact = load_model(model_path)
@@ -114,18 +114,22 @@ async def log_requests(request: Request, call_next):
 
 
 class Transaction(BaseModel):
-    transaction_amount: float
-    transaction_type: str
-    payment_mode: str
-    device_type: str
-    device_location: str
-    account_age_days: int
-    transaction_hour: int
-    previous_failed_attempts: int
-    avg_transaction_amount: float
-    is_international: int
-    ip_risk_score: float
-    login_attempts_last_24h: int
+    model_config = ConfigDict(
+        extra="forbid", str_strip_whitespace=True, allow_inf_nan=False
+    )
+
+    transaction_amount: float = Field(ge=0)
+    transaction_type: str = Field(min_length=1, max_length=100)
+    payment_mode: str = Field(min_length=1, max_length=100)
+    device_type: str = Field(min_length=1, max_length=100)
+    device_location: str = Field(min_length=1, max_length=100)
+    account_age_days: int = Field(ge=0)
+    transaction_hour: int = Field(ge=0, le=23)
+    previous_failed_attempts: int = Field(ge=0)
+    avg_transaction_amount: float = Field(ge=0)
+    is_international: int = Field(ge=0, le=1)
+    ip_risk_score: float = Field(ge=0, le=1)
+    login_attempts_last_24h: int = Field(ge=0)
 
 
 @app.get("/")
@@ -180,7 +184,7 @@ def get_metrics():
 @app.post("/predict")
 def predict(transaction: Transaction):
     started_at = time.perf_counter()
-    prediction = predict_transaction(transaction.model_dump(), artifact)
+    prediction = predict_transaction_details(transaction.model_dump(), artifact)
     latency_ms = (time.perf_counter() - started_at) * 1000
 
     with metrics_lock:
@@ -198,7 +202,7 @@ def predict(transaction: Transaction):
     )
 
     return {
-        "fraud_prediction": prediction,
+        **prediction,
         "schema_version": API_SCHEMA_VERSION,
         "model_version": artifact.get("metadata", {}).get(
             "model_version", resolved_model_version

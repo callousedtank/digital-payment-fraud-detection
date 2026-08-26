@@ -7,15 +7,24 @@ import joblib
 from imblearn.over_sampling import SMOTENC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    classification_report,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    confusion_matrix,
+)
 
-from experiment_tracking import (
+from src.experiment_tracking import (
     build_experiment_record,
     dataset_fingerprint,
     record_experiment,
 )
-from model_registry import activate_model, register_model, validate_version
-from preprocessing import preprocess_data
+from src.model_registry import activate_model, register_model, validate_version
+from src.preprocessing import preprocess_data
 
 DATA_PATH = "data/Digital_Payment_Fraud_Detection_Dataset.csv"
 MODELS_DIR = Path("models")
@@ -52,12 +61,23 @@ def train_model(X_train, y_train, categorical_indices, model_type):
 
 def evaluate_model(model, X_test, y_test):
     predictions = model.predict(X_test)
+    probabilities = model.predict_proba(X_test)[:, 1]
 
     print("Predictions:", Counter(predictions))
     accuracy = accuracy_score(y_test, predictions)
     print(f"Accuracy: {accuracy:.4f}")
     print(classification_report(y_test, predictions))
-    return {"accuracy": accuracy}
+    metrics = {
+        "accuracy": accuracy,
+        "precision": precision_score(y_test, predictions, zero_division=0),
+        "recall": recall_score(y_test, predictions, zero_division=0),
+        "f1": f1_score(y_test, predictions, zero_division=0),
+        "pr_auc": average_precision_score(y_test, probabilities),
+        "roc_auc": roc_auc_score(y_test, probabilities),
+        "confusion_matrix": confusion_matrix(y_test, predictions).tolist(),
+    }
+    print("Validation metrics:", metrics)
+    return metrics
 
 
 def save_model(
@@ -109,7 +129,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--activate-version",
-        help="Activate a previously validated model version without training.",
+        help="Activate a previously evaluated model version without training.",
     )
     parser.add_argument(
         "--model-type",

@@ -1,0 +1,16 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      API_URL: http://api:8000/predict
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api

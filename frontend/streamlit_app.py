@@ -4,19 +4,22 @@ import requests
 import streamlit as st
 
 DEFAULT_API_URL = "https://digital-payment-fraud-detection.onrender.com/predict"
-API_URL = os.getenv("API_URL", DEFAULT_API_URL) 
+API_URL = os.getenv("API_URL", DEFAULT_API_URL)
 
 st.set_page_config(page_title="Digital Payment Fraud Detection", page_icon="💳")
-st.title("Digital Payment Fraud Detection")
-st.caption("Submit a transaction to the deployed FastAPI model endpoint.")
+st.title("Transaction fraud review")
+st.caption("Assess a payment using the deployed fraud-risk model. This is a decision-support signal, not an automatic block.")
+
+with st.expander("How to use this tool", expanded=False):
+    st.write("Enter the transaction details and review the fraud probability alongside the predicted risk decision. Escalate high-risk results for manual review.")
 
 with st.form("transaction_form"):
     transaction_amount = st.number_input(
         "Transaction amount", min_value=0.0, value=5000.0, step=100.0
     )
-    transaction_type = st.selectbox("Transaction type", ["TRANSFER", "PAYMENT", "CASH_OUT", "DEBIT"])
-    payment_mode = st.selectbox("Payment mode", ["UPI", "CARD", "NET_BANKING", "WALLET"])
-    device_type = st.selectbox("Device type", ["Mobile", "Desktop", "Tablet"])
+    transaction_type = st.selectbox("Transaction type", ["Payment", "Transfer", "Withdrawal"])
+    payment_mode = st.selectbox("Payment mode", ["Card", "NetBanking", "UPI", "Wallet"])
+    device_type = st.selectbox("Device type", ["Android", "iOS", "Web"])
     device_location = st.text_input("Device location", value="Chennai")
     account_age_days = st.number_input("Account age (days)", min_value=0, value=365, step=1)
     transaction_hour = st.slider("Transaction hour", min_value=0, max_value=23, value=14)
@@ -52,9 +55,6 @@ if submitted:
         "login_attempts_last_24h": login_attempts_last_24h,
     }
 
-    if API_URL == DEFAULT_API_URL:
-        st.warning("Set API_URL in Streamlit secrets before deploying this frontend.")
-
     try:
         response = requests.post(API_URL, json=payload, timeout=30)
         response.raise_for_status()
@@ -63,8 +63,18 @@ if submitted:
     else:
         result = response.json()
         prediction = result.get("fraud_prediction")
+        probability = result.get("fraud_probability")
+        threshold = result.get("decision_threshold")
         if prediction == 1:
-            st.error("Prediction: potentially fraudulent transaction")
+            st.error("Potentially fraudulent — send for review")
         else:
-            st.success("Prediction: likely legitimate transaction")
-        st.json(result)
+            st.success("Likely legitimate transaction")
+
+        if isinstance(probability, (int, float)):
+            st.metric("Estimated fraud probability", f"{probability:.1%}")
+            st.progress(min(max(float(probability), 0.0), 1.0))
+        if isinstance(threshold, (int, float)):
+            st.caption(f"Decision threshold: {threshold:.1%}. Scores at or above this value are marked for review.")
+
+        with st.expander("Prediction details"):
+            st.json(result)

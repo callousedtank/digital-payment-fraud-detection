@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: digital-payment-fraud-detection-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+
+  - type: web
+    name: digital-payment-fraud-detection-ui
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    envVars:
+      - key: API_URL
+        value: https://digital-payment-fraud-detection-api.onrender.com/predict

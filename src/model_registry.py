@@ -48,6 +48,8 @@ def write_registry(registry, path):
 def register_model(version, artifact_path, metadata, registry_path):
     version = validate_version(version)
     registry = load_registry(registry_path)
+    if version in registry["models"]:
+        raise ValueError(f"Model version already exists: {version}")
     registry["models"][version] = {
         "artifact_path": str(artifact_path),
         "metadata": metadata,

@@ -18,6 +18,13 @@ venv/
 
 # Environment variables
 .env
+.env.*
+!.env.example
+
+# Local editor and Streamlit configuration
+.idea/
+.vscode/
+.streamlit/secrets.toml
 
 # Jupyter
 .ipynb_checkpoints/

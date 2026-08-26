@@ -2,20 +2,33 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OrdinalEncoder
 
+IDENTIFIER_COLUMNS = ["transaction_id", "user_id"]
+TARGET_COLUMN = "fraud_label"
+
 
 def load_data(path):
     return pd.read_csv(path)
 
 
 def clean_data(df):
-    columns_to_drop = ["transaction_id", "user_id"]
-
-    return df.drop(columns=columns_to_drop)
+    missing_columns = [column for column in IDENTIFIER_COLUMNS if column not in df]
+    if missing_columns:
+        raise ValueError(f"Dataset is missing identifier columns: {missing_columns}")
+    return df.drop(columns=IDENTIFIER_COLUMNS)
 
 
 def split_features_target(df):
-    X = df.drop(columns=["fraud_label"])
-    y = df["fraud_label"]
+    if TARGET_COLUMN not in df:
+        raise ValueError(f"Dataset is missing target column: {TARGET_COLUMN}")
+    if df.empty:
+        raise ValueError("Dataset is empty")
+    if df.isna().any().any():
+        raise ValueError("Dataset contains missing values")
+
+    X = df.drop(columns=[TARGET_COLUMN])
+    y = df[TARGET_COLUMN]
+    if y.nunique() != 2:
+        raise ValueError("Fraud target must contain exactly two classes")
 
     return X, y
 
