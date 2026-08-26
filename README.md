@@ -4,6 +4,48 @@ An end-to-end machine learning system for detecting fraudulent digital payment t
 
 This isn't a notebook that trains and scores a model. It's a full pipeline: reproducible preprocessing, imbalance-aware training, an immutable model registry with rollback, a FastAPI inference service with structured logging and Prometheus-style metrics, automated tests, CI validation, and containerized deployment.
 
+## Live Demo Deployment
+
+The API deploys to **Render** as a Docker web service, and the frontend deploys separately to **Streamlit Community Cloud**.
+
+### API: Render
+
+The API's Dockerfile reads Render's `$PORT` environment variable automatically, and CORS is configurable via `CORS_ALLOW_ORIGINS`.
+
+Since model artifacts are normally excluded from Git, this repo commits one deliberate exception for demo purposes: `models/model-demo.joblib`, trained and versioned as `demo`. This is **not** the primary artifact for local development — it exists solely so the API has a model to serve without requiring dataset access at deploy time.
+
+1. Create a Render **Web Service**, connect this GitHub repository, and select the Docker deploy path.
+2. Set environment variables:
+
+```text
+   MODEL_VERSION=demo
+   CORS_ALLOW_ORIGINS=https://your-streamlit-app.streamlit.app
+```
+
+   `CORS_ALLOW_ORIGINS=*` is fine while testing; tighten it to your actual Streamlit URL before sharing the demo publicly.
+3. Once deployed, verify from outside your local machine:
+
+```bash
+   curl https://your-render-service.onrender.com/health
+   curl https://your-render-service.onrender.com/ready
+```
+
+   A working `/ready` response should show `"model_version": "demo"`, confirming the committed demo artifact loaded correctly.
+
+### Frontend: Streamlit Community Cloud
+
+1. Deploy `frontend/streamlit_app.py` from this repository.
+2. Dependencies are pinned in `frontend/requirements.txt`.
+3. Add a Streamlit secret pointing at your live Render endpoint:
+
+```toml
+   API_URL = "https://your-render-service.onrender.com/predict"
+```
+
+4. Open the Streamlit URL, submit a transaction, and confirm the prediction returns — proving the full path frontend → Render API → model → frontend works from outside your machine, not just localhost.
+
+Once both are live, replace the placeholder URLs above with your actual Render and Streamlit links.
+
 ## Highlights
 
 - **Imbalance-aware training** — SMOTENC applied correctly on categorical + numeric features (not naive SMOTE), with encoders fit only on training data and evaluated with proper metrics beyond raw accuracy, catching and fixing a model that was silently predicting every transaction as legitimate.
@@ -253,9 +295,11 @@ podman run -p 8000:8000 fraud-api
 
 ## Future Enhancements
 
-The current project provides a full local and containerized ML inference pipeline with versioning, observability, and experiment tracking. Planned next steps:
+The current project provides a full local and containerized ML inference
+pipeline with versioning, observability, experiment tracking, and a live
+public demo. Planned next steps:
 
-- Deployment automation — cloud deploy with a public demo link, release pipeline
+- Release automation (versioned deploys, rollback on the hosted API itself, not just local rollback via the model registry)
 - Export metrics to a monitoring backend with dashboards and alerts
 - API/schema migrations and compatibility guarantees for future versions
 - Evaluate MLflow if a shared tracking server or team-wide UI becomes necessary
