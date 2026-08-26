@@ -3,8 +3,8 @@ import os
 import requests
 import streamlit as st
 
-DEFAULT_API_URL = "https://your-render-service.onrender.com/predict"
-API_URL = st.secrets.get("API_URL", os.getenv("API_URL", DEFAULT_API_URL))
+DEFAULT_API_URL = "https://digital-payment-fraud-detection.onrender.com/predict"
+API_URL = os.getenv("API_URL", DEFAULT_API_URL) 
 
 st.set_page_config(page_title="Digital Payment Fraud Detection", page_icon="💳")
 st.title("Digital Payment Fraud Detection")
