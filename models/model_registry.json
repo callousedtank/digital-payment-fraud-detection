@@ -1,0 +1,39 @@
+{
+  "active_version": "demo",
+  "models": {
+    "demo": {
+      "artifact_path": "models/model-demo.joblib",
+      "metadata": {
+        "artifact_version": 1,
+        "classifier": "RandomForestClassifier",
+        "feature_names": [
+          "transaction_amount",
+          "transaction_type",
+          "payment_mode",
+          "device_type",
+          "device_location",
+          "account_age_days",
+          "transaction_hour",
+          "previous_failed_attempts",
+          "avg_transaction_amount",
+          "is_international",
+          "ip_risk_score",
+          "login_attempts_last_24h"
+        ],
+        "model_version": "demo",
+        "trained_at": "2026-08-26T10:41:22.884364+00:00",
+        "training_configuration": {
+          "classifier": "RandomForestClassifier",
+          "model_type": "random_forest",
+          "random_state": 42,
+          "resampling": "SMOTENC"
+        },
+        "validation_metrics": {
+          "accuracy": 0.844
+        }
+      },
+      "validation_status": "validated"
+    }
+  },
+  "registry_version": 1
+}
