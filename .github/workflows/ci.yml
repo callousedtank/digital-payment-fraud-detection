@@ -2,36 +2,15 @@ name: CI
 
 on:
   push:
-<<<<<<< HEAD
-  pull_request:
-=======
     branches:
       - main
   pull_request:
     branches:
       - main
->>>>>>> 2d6c4235cc7ae5f8ebe46c17ae8722d03bc8bd62
 
 jobs:
   test:
     runs-on: ubuntu-latest
-<<<<<<< HEAD
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -r requirements-dev.txt
-      - run: pytest -q
-
-  container-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: mkdir -p models
-      - run: docker build -t fraud-api .
-=======
 
     steps:
       - name: Checkout repository
@@ -49,4 +28,28 @@ jobs:
 
       - name: Run tests
         run: pytest -v
->>>>>>> 2d6c4235cc7ae5f8ebe46c17ae8722d03bc8bd62
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  container-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p models
+      - run: docker build -t fraud-api .
