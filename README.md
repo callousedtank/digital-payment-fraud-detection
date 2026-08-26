@@ -58,11 +58,11 @@ digital-payment-fraud-detection/
 │   └── fraud_detection.ipynb    # Exploratory notebook
 ├── src/
 │   ├── preprocessing.py         # Data preprocessing
-│   ├── train.py                # Training and model versioning
-│   ├── predict.py              # Inference
-│   ├── model_registry.py       # Model resolution and rollback
-│   ├── experiment_tracking.py  # Experiment recording
-│   └── compare_experiments.py  # Experiment comparison
+│   ├── train.py                 # Training and model versioning
+│   ├── predict.py               # Inference
+│   ├── model_registry.py        # Model resolution and rollback
+│   ├── experiment_tracking.py   # Experiment recording
+│   └── compare_experiments.py   # Experiment comparison
 ├── tests/
 │   ├── conftest.py
 │   ├── test_api.py
