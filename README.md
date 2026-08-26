@@ -44,8 +44,6 @@ Since model artifacts are normally excluded from Git, this repo commits one deli
 
 4. Open the Streamlit URL, submit a transaction, and confirm the prediction returns — proving the full path frontend → Render API → model → frontend works from outside your machine, not just localhost.
 
-Once both are live, replace the placeholder URLs above with your actual Render and Streamlit links.
-
 ## Highlights
 
 - **Imbalance-aware training** — SMOTENC applied correctly on categorical + numeric features (not naive SMOTE), with encoders fit only on training data and evaluated with proper metrics beyond raw accuracy, catching and fixing a model that was silently predicting every transaction as legitimate.
