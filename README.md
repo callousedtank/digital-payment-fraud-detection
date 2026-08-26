@@ -1,6 +1,6 @@
 # Digital Payment Fraud Detection
 
-An end-to-end machine learning system for detecting fraudulent digital payment transactions — from raw transaction data to a versioned, observable, containerized inference API.
+An end-to-end machine learning system for detecting fraudulent digital payment transactions from raw transaction data to a versioned, observable, containerized inference API.
 
 This isn't a notebook that trains and scores a model. It's a full pipeline: reproducible preprocessing, imbalance-aware training, an immutable model registry with rollback, a FastAPI inference service with structured logging and Prometheus-style metrics, automated tests, CI validation, and containerized deployment.
 
