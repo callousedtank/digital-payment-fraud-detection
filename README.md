@@ -1,8 +1,13 @@
 # Digital Payment Fraud Detection
 
-An end-to-end machine learning system for detecting fraudulent digital payment transactions — from preprocessing and imbalance-aware training to a versioned, observable, containerized inference API and optional Streamlit client.
+An end-to-end machine learning system for detecting fraudulent digital payment transactions from preprocessing and imbalance-aware training to a versioned, observable, containerized inference API and optional Streamlit client.
 
-The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation, and containerization.
+The project goes beyond a notebook workflow. It includes reproducible preprocessing, model versioning and rollback, experiment tracking, API validation, structured logging, automated tests, CI validation and containerization.
+
+## Live Demo
+
+- API: `https://digital-payment-fraud-detection.onrender.com` ([interactive docs](https://digital-payment-fraud-detection.onrender.com/docs))
+- App: Streamlit frontend runs locally (`streamlit run frontend/streamlit_app.py`); public deployment pending — see Future Enhancements.
 
 ## Highlights
 
@@ -48,7 +53,7 @@ digital-payment-fraud-detection/
 ├── frontend/
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   └── streamlit_app.py         # Streamlit client
+│   └── streamlit_app.py        # Streamlit client
 ├── data/
 │   ├── README.md                # Dataset information
 │   └── *.csv                    # Dataset (not tracked by Git)
@@ -73,7 +78,7 @@ digital-payment-fraud-detection/
 │   └── test_experiment_tracking.py
 ├── Dockerfile
 ├── docker-compose.yml
-├── render.yaml                # Render API and Streamlit service definitions
+├── render.yaml                  # Render API and Streamlit service definitions
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── pytest.ini
@@ -149,7 +154,9 @@ Training performs schema checks, stratified splitting, categorical encoding, SMO
 
 ### Model-quality note
 
-The bundled dataset is highly imbalanced and the available non-identifier features currently show very limited fraud signal. Treat the bundled demo model as a technical demonstration, not a production fraud-decision system. Before production use, retrain and evaluate with representative labelled transactions and compare PR-AUC, fraud precision/recall, F1, and the confusion matrix against the legitimate-only baseline.
+Both Random Forest and Logistic Regression were trained and evaluated on this dataset. Both land at ROC-AUC ≈ 0.47–0.48 and PR-AUC ≈ 0.06 on held-out data — statistically consistent with the available features carrying little to no separable fraud signal, not a model-specific failure. This was confirmed across two different model families rather than assumed from a single run.
+
+Treat the bundled demo model as a demonstration of the ML engineering pipeline (versioning, tracking, serving, testing, deployment) — not as a validated fraud-decision system. Production use would require retraining on representative labelled transactions with richer behavioral/graph features, and evaluating PR-AUC, fraud precision/recall, and the confusion matrix against a legitimate-only baseline before promotion.
 
 Each run produces a versioned artifact and updates the local model registry:
 
@@ -285,6 +292,7 @@ The supplied `render.yaml` defines two simple Render web services: the API and t
 
 The current project covers the core engineering and deployment pipeline. Potential next steps include:
 
+* **Public frontend deployment** — deploy the Streamlit client to Streamlit Community Cloud, pointed at the live Render API.
 * **Hosted release automation** — automated versioned deployments and rollback at the deployment layer.
 * **Monitoring infrastructure** — export application and prediction metrics to a dedicated monitoring backend with dashboards and alerts.
 * **API evolution** — formal schema migrations and compatibility guarantees as the API changes.
