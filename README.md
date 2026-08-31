@@ -53,7 +53,7 @@ digital-payment-fraud-detection/
 ├── frontend/
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   └── streamlit_app.py        # Streamlit client
+│   └── streamlit_app.py         # Streamlit client
 ├── data/
 │   ├── README.md                # Dataset information
 │   └── *.csv                    # Dataset (not tracked by Git)
