@@ -14,8 +14,8 @@ The project goes beyond a notebook workflow. It includes reproducible preprocess
 * **Imbalance-aware training** — SMOTENC handles categorical and numerical features while preserving the correct train/test separation.
 * **Deterministic preprocessing** — categorical encoders are fit only on training data and persisted with the model artifact, with unknown-category handling at inference time.
 * **Model versioning and rollback** — training runs produce versioned artifacts and maintain an active model registry so evaluated versions can be re-activated without retraining.
-* **Experiment tracking** — training runs record dataset fingerprints, model configuration, feature information, and validation metrics in JSONL format.
-* **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics, and version metadata.
+* **Experiment tracking** — training runs record dataset fingerprints, model configuration, feature information and validation metrics in JSONL format.
+* **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics and version metadata.
 * **Tested and CI-validated** — automated tests cover prediction, validation, unknown categories, model registry behavior, and operational endpoints. GitHub Actions validates the test suite and container build.
 * **Containerized services** — Docker Compose starts both the FastAPI inference API and the Streamlit client.
 * **Web interface** — the separate Streamlit client sends requests to the same `/predict` inference endpoint.
@@ -150,13 +150,13 @@ See [`data/README.md`](data/README.md) for dataset information.
 python -m src.train
 ```
 
-Training performs schema checks, stratified splitting, categorical encoding, SMOTENC-based balancing, and model training. It reports accuracy, precision, recall, F1, ROC-AUC, and average precision; do not promote a model based on accuracy alone.
+Training performs schema checks, stratified splitting, categorical encoding, SMOTENC-based balancing, and model training. It reports accuracy, precision, recall, F1, ROC-AUC and average precision; do not promote a model based on accuracy alone.
 
 ### Model-quality note
 
 Both Random Forest and Logistic Regression were trained and evaluated on this dataset. Both land at ROC-AUC ≈ 0.47–0.48 and PR-AUC ≈ 0.06 on held-out data — statistically consistent with the available features carrying little to no separable fraud signal, not a model-specific failure. This was confirmed across two different model families rather than assumed from a single run.
 
-Treat the bundled demo model as a demonstration of the ML engineering pipeline (versioning, tracking, serving, testing, deployment) — not as a validated fraud-decision system. Production use would require retraining on representative labelled transactions with richer behavioral/graph features, and evaluating PR-AUC, fraud precision/recall, and the confusion matrix against a legitimate-only baseline before promotion.
+Treat the bundled demo model as a demonstration of the ML engineering pipeline (versioning, tracking, serving, testing, deployment) — not as a validated fraud-decision system. Production use would require retraining on representative labelled transactions with richer behavioral/graph features and evaluating PR-AUC, fraud precision/recall and the confusion matrix against a legitimate-only baseline before promotion.
 
 Each run produces a versioned artifact and updates the local model registry:
 
@@ -229,7 +229,7 @@ streamlit run frontend/streamlit_app.py
 
 Set `API_URL` to point the client at a different API endpoint; it defaults to the public demo endpoint.
 
-`/predict` returns the binary `fraud_prediction`, `fraud_probability`, and the model's `decision_threshold`, so clients can present both the decision and supporting risk score.
+`/predict` returns the binary `fraud_prediction`, `fraud_probability` and the model's `decision_threshold`, so clients can present both the decision and supporting risk score.
 
 ### 7. Run Tests
 
@@ -278,7 +278,7 @@ The container is configured to use the runtime-provided `PORT` when deployed to 
 
 ## Deployment
 
-The supplied `render.yaml` defines two simple Render web services: the API and the Streamlit UI. Confirm that the API service URL matches the `API_URL` value before applying it. The API exposes interactive documentation at `/docs`, prediction at `/predict`, and health, readiness, and metrics endpoints at `/health`, `/ready`, and `/metrics`.
+The supplied `render.yaml` defines two simple Render web services: the API and the Streamlit UI. Confirm that the API service URL matches the `API_URL` value before applying it. The API exposes interactive documentation at `/docs`, prediction at `/predict`, and health, readiness and metrics endpoints at `/health`, `/ready` and `/metrics`.
 
 ## Environment Notes
 
