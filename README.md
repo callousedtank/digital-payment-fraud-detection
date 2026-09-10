@@ -296,6 +296,6 @@ The current project covers the core engineering and deployment pipeline. Potenti
 * **Hosted release automation** — automated versioned deployments and rollback at the deployment layer.
 * **Monitoring infrastructure** — export application and prediction metrics to a dedicated monitoring backend with dashboards and alerts.
 * **API evolution** — formal schema migrations and compatibility guarantees as the API changes.
-* **Experiment infrastructure** — evaluate MLflow if shared tracking, artifact storage, or a team-wide experiment UI becomes necessary.
+* **Experiment infrastructure** — evaluate MLflow if shared tracking, artifact storage or a team-wide experiment UI becomes necessary.
 * **Model lifecycle improvements** — introduce stronger promotion gates and automated validation before a model becomes the active production version.
-* **Web UI improvements** — expand the deployed transaction interface with better result explanations, validation feedback, and a more polished user experience.
+* **Web UI improvements** — expand the deployed transaction interface with better result explanations, validation feedback and a more polished user experience.
