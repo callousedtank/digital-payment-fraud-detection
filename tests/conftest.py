@@ -13,7 +13,11 @@ class TestModel:
 
 
 def pytest_sessionstart(session):
-    artifact_path = Path(session.config._tmp_path_factory.getbasetemp()) / "model.joblib"
+    artifact_path = (
+        Path(session.config._tmp_path_factory.getbasetemp())
+        / "model.joblib"
+    )
+
     joblib.dump(
         {
             "model": TestModel(),
@@ -33,9 +37,15 @@ def pytest_sessionstart(session):
                 "ip_risk_score",
                 "login_attempts_last_24h",
             ],
-            "metadata": {"model_version": "test"},
+            "metadata": {
+                "model_version": "test",
+                "classifier": "TestModel",
+            },
         },
         artifact_path,
     )
+
     os.environ["MODEL_PATH"] = str(artifact_path)
-    os.environ["MODEL_REGISTRY_PATH"] = str(artifact_path.with_name("registry.json"))
+    os.environ["MODEL_REGISTRY_PATH"] = str(
+        artifact_path.with_name("registry.json")
+    )

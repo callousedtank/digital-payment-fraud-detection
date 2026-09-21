@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-
 EXPERIMENT_SCHEMA_VERSION = 1
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 

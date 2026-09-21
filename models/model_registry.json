@@ -1,6 +1,240 @@
 {
   "active_version": "demo",
   "models": {
+    "20260921T135844Z": {
+      "artifact_path": "models/model-20260921T135844Z.joblib",
+      "metadata": {
+        "artifact_version": 1,
+        "classifier": "RandomForestClassifier",
+        "feature_names": [
+          "transaction_amount",
+          "transaction_type",
+          "payment_mode",
+          "device_type",
+          "device_location",
+          "account_age_days",
+          "transaction_hour",
+          "previous_failed_attempts",
+          "avg_transaction_amount",
+          "is_international",
+          "ip_risk_score",
+          "login_attempts_last_24h"
+        ],
+        "model_version": "20260921T135844Z",
+        "trained_at": "2026-09-21T13:58:46.537928+00:00",
+        "training_configuration": {
+          "classifier": "RandomForestClassifier",
+          "model_type": "random_forest",
+          "random_state": 42,
+          "resampling": "SMOTENC"
+        },
+        "validation_metrics": {
+          "accuracy": 0.844,
+          "confusion_matrix": [
+            [
+              1252,
+              150
+            ],
+            [
+              84,
+              14
+            ]
+          ],
+          "f1": 0.10687022900763359,
+          "pr_auc": 0.06374563512801232,
+          "precision": 0.08536585365853659,
+          "recall": 0.14285714285714285,
+          "roc_auc": 0.4766259570875425
+        }
+      },
+      "validation_status": "validated"
+    },
+    "20260921T143524Z": {
+      "artifact_path": "models/model-20260921T143524Z.joblib",
+      "metadata": {
+        "artifact_version": 1,
+        "classifier": "RandomForestClassifier",
+        "feature_names": [
+          "transaction_amount",
+          "transaction_type",
+          "payment_mode",
+          "device_type",
+          "device_location",
+          "account_age_days",
+          "transaction_hour",
+          "previous_failed_attempts",
+          "avg_transaction_amount",
+          "is_international",
+          "ip_risk_score",
+          "login_attempts_last_24h"
+        ],
+        "model_version": "20260921T143524Z",
+        "trained_at": "2026-09-21T14:35:25.490041+00:00",
+        "training_configuration": {
+          "classifier": "RandomForestClassifier",
+          "dataset": "original",
+          "model_type": "random_forest",
+          "random_state": 42,
+          "resampling": "smotenc",
+          "test_size": 0.2
+        },
+        "validation_metrics": {
+          "accuracy": 0.844,
+          "confusion_matrix": [
+            [
+              1252,
+              150
+            ],
+            [
+              84,
+              14
+            ]
+          ],
+          "f1": 0.10687022900763359,
+          "pr_auc": 0.06374563512801232,
+          "precision": 0.08536585365853659,
+          "recall": 0.14285714285714285,
+          "roc_auc": 0.4766259570875425
+        }
+      },
+      "validation_status": "validated"
+    },
+    "20260921T143551Z": {
+      "artifact_path": "models/model-20260921T143551Z.joblib",
+      "metadata": {
+        "artifact_version": 1,
+        "classifier": "RandomForestClassifier",
+        "feature_names": [
+          "Time",
+          "V1",
+          "V2",
+          "V3",
+          "V4",
+          "V5",
+          "V6",
+          "V7",
+          "V8",
+          "V9",
+          "V10",
+          "V11",
+          "V12",
+          "V13",
+          "V14",
+          "V15",
+          "V16",
+          "V17",
+          "V18",
+          "V19",
+          "V20",
+          "V21",
+          "V22",
+          "V23",
+          "V24",
+          "V25",
+          "V26",
+          "V27",
+          "V28",
+          "Amount"
+        ],
+        "model_version": "20260921T143551Z",
+        "trained_at": "2026-09-21T14:36:44.765791+00:00",
+        "training_configuration": {
+          "classifier": "RandomForestClassifier",
+          "dataset": "ulb",
+          "model_type": "random_forest",
+          "random_state": 42,
+          "resampling": "none",
+          "test_size": 0.2
+        },
+        "validation_metrics": {
+          "accuracy": 0.9995962220427653,
+          "confusion_matrix": [
+            [
+              56859,
+              5
+            ],
+            [
+              18,
+              80
+            ]
+          ],
+          "f1": 0.8743169398907104,
+          "pr_auc": 0.8733910547021404,
+          "precision": 0.9411764705882353,
+          "recall": 0.8163265306122449,
+          "roc_auc": 0.9630272515590367
+        }
+      },
+      "validation_status": "validated"
+    },
+    "20260921T143704Z": {
+      "artifact_path": "models/model-20260921T143704Z.joblib",
+      "metadata": {
+        "artifact_version": 1,
+        "classifier": "RandomForestClassifier",
+        "feature_names": [
+          "Time",
+          "V1",
+          "V2",
+          "V3",
+          "V4",
+          "V5",
+          "V6",
+          "V7",
+          "V8",
+          "V9",
+          "V10",
+          "V11",
+          "V12",
+          "V13",
+          "V14",
+          "V15",
+          "V16",
+          "V17",
+          "V18",
+          "V19",
+          "V20",
+          "V21",
+          "V22",
+          "V23",
+          "V24",
+          "V25",
+          "V26",
+          "V27",
+          "V28",
+          "Amount"
+        ],
+        "model_version": "20260921T143704Z",
+        "trained_at": "2026-09-21T14:38:37.905744+00:00",
+        "training_configuration": {
+          "classifier": "RandomForestClassifier",
+          "dataset": "ulb",
+          "model_type": "random_forest",
+          "random_state": 42,
+          "resampling": "smote",
+          "test_size": 0.2
+        },
+        "validation_metrics": {
+          "accuracy": 0.999420666409185,
+          "confusion_matrix": [
+            [
+              56848,
+              16
+            ],
+            [
+              17,
+              81
+            ]
+          ],
+          "f1": 0.8307692307692308,
+          "pr_auc": 0.8746876142969218,
+          "precision": 0.8350515463917526,
+          "recall": 0.826530612244898,
+          "roc_auc": 0.9644232605112952
+        }
+      },
+      "validation_status": "validated"
+    },
     "demo": {
       "artifact_path": "models/model-demo.joblib",
       "metadata": {

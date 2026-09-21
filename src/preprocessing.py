@@ -2,33 +2,50 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OrdinalEncoder
 
-IDENTIFIER_COLUMNS = ["transaction_id", "user_id"]
-TARGET_COLUMN = "fraud_label"
+from src.datasets import get_dataset_config, validate_dataset_path
 
 
 def load_data(path):
     return pd.read_csv(path)
 
 
-def clean_data(df):
-    missing_columns = [column for column in IDENTIFIER_COLUMNS if column not in df]
+def clean_data(df, identifier_columns):
+    missing_columns = [
+        column
+        for column in identifier_columns
+        if column not in df.columns
+    ]
+
     if missing_columns:
-        raise ValueError(f"Dataset is missing identifier columns: {missing_columns}")
-    return df.drop(columns=IDENTIFIER_COLUMNS)
+        raise ValueError(
+            f"Dataset is missing identifier columns: {missing_columns}"
+        )
+
+    if identifier_columns:
+        return df.drop(columns=list(identifier_columns))
+
+    return df.copy()
 
 
-def split_features_target(df):
-    if TARGET_COLUMN not in df:
-        raise ValueError(f"Dataset is missing target column: {TARGET_COLUMN}")
+def split_features_target(df, target_column):
+    if target_column not in df.columns:
+        raise ValueError(
+            f"Dataset is missing target column: {target_column}"
+        )
+
     if df.empty:
         raise ValueError("Dataset is empty")
+
     if df.isna().any().any():
         raise ValueError("Dataset contains missing values")
 
-    X = df.drop(columns=[TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+
     if y.nunique() != 2:
-        raise ValueError("Fraud target must contain exactly two classes")
+        raise ValueError(
+            "Fraud target must contain exactly two classes"
+        )
 
     return X, y
 
@@ -39,75 +56,112 @@ def split_data(X, y):
         y,
         test_size=0.2,
         random_state=42,
-        stratify=y
+        stratify=y,
     )
 
 
 def encode_features(X_train, X_test):
+    X_train = X_train.copy()
+    X_test = X_test.copy()
+
     encoders = {}
 
     categorical_columns = X_train.select_dtypes(
-        include=["object", "string"]
+        include=["object", "string", "category"]
     ).columns
 
-    for col in categorical_columns:
+    for column in categorical_columns:
         encoder = OrdinalEncoder(
             handle_unknown="use_encoded_value",
-            unknown_value=-1
+            unknown_value=-1,
         )
 
-        X_train[col] = encoder.fit_transform(
-            X_train[[col]]
+        X_train[column] = encoder.fit_transform(
+            X_train[[column]]
         ).ravel()
 
-        X_test[col] = encoder.transform(
-            X_test[[col]]
+        X_test[column] = encoder.transform(
+            X_test[[column]]
         ).ravel()
 
-        encoders[col] = encoder
+        encoders[column] = encoder
 
     categorical_indices = [
-        X_train.columns.get_loc(col)
-        for col in categorical_columns
+        X_train.columns.get_loc(column)
+        for column in categorical_columns
     ]
-
-    return X_train, X_test, encoders, categorical_indices
-
-
-
-def preprocess_data(path):
-    df = load_data(path)
-    df = clean_data(df)
-
-    X, y = split_features_target(df)
-
-    X_train, X_test, y_train, y_test = split_data(X, y)
-
-    X_train, X_test, encoders, categorical_indices = encode_features(
-        X_train,
-        X_test
-    )
 
     return (
         X_train,
         X_test,
-        y_train,
-        y_test,
         encoders,
-        categorical_indices
+        categorical_indices,
     )
+
+
+def preprocess_data(dataset_name):
+    config = get_dataset_config(dataset_name)
+    dataset_path = validate_dataset_path(config)
+
+    df = load_data(dataset_path)
+
+    df = clean_data(
+        df,
+        config.identifier_columns,
+    )
+
+    X, y = split_features_target(
+        df,
+        config.target_column,
+    )
+
+    X_train, X_test, y_train, y_test = split_data(X, y)
+
+    (
+        X_train,
+        X_test,
+        encoders,
+        categorical_indices,
+    ) = encode_features(
+        X_train,
+        X_test,
+    )
+
+    return {
+        "X_train": X_train,
+        "X_test": X_test,
+        "y_train": y_train,
+        "y_test": y_test,
+        "encoders": encoders,
+        "categorical_indices": categorical_indices,
+        "dataset_name": config.name,
+        "dataset_path": str(dataset_path),
+        "target_column": config.target_column,
+    }
 
 
 if __name__ == "__main__":
-    DATA_PATH = "data/Digital_Payment_Fraud_Detection_Dataset.csv"
+    import argparse
 
-    X_train, X_test, y_train, y_test, encoders, categorical_indices = preprocess_data(
-        DATA_PATH
+    parser = argparse.ArgumentParser(
+        description="Inspect dataset preprocessing."
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=("original", "ulb"),
+        required=True,
     )
 
-    print(f"X_train: {X_train.shape}")
-    print(f"X_test: {X_test.shape}")
-    print(f"y_train: {y_train.shape}")
-    print(f"y_test: {y_test.shape}")
-    print(f"Encoders: {list(encoders.keys())}")
-    print(f"Categorical indices: {categorical_indices}")
+    args = parser.parse_args()
+
+    result = preprocess_data(args.dataset)
+
+    print(f"Dataset: {result['dataset_name']}")
+    print(f"Path: {result['dataset_path']}")
+    print(f"Target: {result['target_column']}")
+    print(f"X_train: {result['X_train'].shape}")
+    print(f"X_test: {result['X_test'].shape}")
+    print(f"y_train: {result['y_train'].shape}")
+    print(f"y_test: {result['y_test'].shape}")
+    print(f"Encoders: {list(result['encoders'].keys())}")
+    print(f"Categorical indices: {result['categorical_indices']}")
