@@ -6,19 +6,20 @@ The project evolved from an initial digital-payment fraud detection prototype in
 
 ## Live Demo
 
-- API: `https://digital-payment-fraud-detection.onrender.com` ([interactive docs](https://digital-payment-fraud-detection.onrender.com/docs))
-- App: Streamlit frontend runs locally (`streamlit run frontend/streamlit_app.py`); public deployment pending.
+* **API:** https://digital-payment-fraud-detection.onrender.com
+* **Interactive API docs:** https://digital-payment-fraud-detection.onrender.com/docs
+* **Frontend:** Streamlit client runs locally; public deployment is pending.
 
 ## Highlights
 
 * **Multiple dataset support** — the training pipeline supports both the original digital-payment dataset and the ULB/Worldline credit-card fraud benchmark through a shared dataset configuration.
-* **Dataset-specific preprocessing** — target columns, identifier columns and resampling methods are configured per dataset rather than hardcoded into the training pipeline.
-* **Imbalance-aware training** — supports `SMOTENC` for the categorical original dataset and `SMOTE` for the numerical ULB benchmark, while keeping resampling restricted to the training split.
+* **Dataset-specific preprocessing** — target columns, identifier columns, and resampling methods are configured per dataset rather than hardcoded into the training pipeline.
+* **Imbalance-aware training** — supports `SMOTENC` for the original dataset with categorical features and `SMOTE` for the numerical ULB benchmark, while keeping resampling restricted to the training split.
 * **Deterministic preprocessing** — categorical encoders are fit only on training data and persisted with the model artifact, with unknown-category handling at inference time.
 * **Model versioning and rollback** — training runs produce versioned artifacts and maintain a model registry so evaluated versions can be re-activated without retraining.
-* **Experiment tracking** — training runs record dataset fingerprints, model configuration, feature information and validation metrics in JSONL format.
-* **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics and model/version metadata.
-* **Tested and CI-validated** — automated tests cover prediction, validation, model registry behavior and operational endpoints.
+* **Experiment tracking** — training runs record dataset fingerprints, model configuration, feature information, and validation metrics in JSONL format.
+* **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics, and model/version metadata.
+* **Tested and CI-validated** — automated tests cover prediction, validation, model registry behavior, experiment tracking, and operational endpoints.
 * **Containerized services** — the inference API can be built and run with Docker or Podman.
 * **Web interface** — the separate Streamlit client sends requests to the same `/predict` inference endpoint.
 
@@ -89,7 +90,7 @@ digital-payment-fraud-detection/
 ├── requirements-dev.txt
 ├── pytest.ini
 └── README.md
-````
+```
 
 ## Installation & Setup
 
@@ -142,7 +143,7 @@ The datasets are intentionally excluded from Git.
 
 The project currently supports two datasets.
 
-### Original digital-payment dataset
+### Original Digital-Payment Dataset
 
 ```text
 data/Digital_Payment_Fraud_Detection_Dataset.csv
@@ -157,7 +158,7 @@ The original dataset contains:
 
 The identifier columns `transaction_id` and `user_id` are excluded during preprocessing.
 
-### ULB credit-card fraud benchmark
+### ULB Credit-Card Fraud Benchmark
 
 ```text
 data/creditcard.csv
@@ -202,11 +203,11 @@ or:
 python -m src.train --dataset ulb
 ```
 
-The dataset configuration determines the dataset path, target column and identifier columns.
+The dataset configuration determines the dataset path, target column, and identifier columns.
 
 ## Training
 
-### Original dataset
+### Original Dataset
 
 Random Forest with SMOTENC:
 
@@ -217,7 +218,7 @@ python -m src.train \
     --resampling smotenc
 ```
 
-### ULB benchmark without resampling
+### ULB Benchmark Without Resampling
 
 ```bash
 python -m src.train \
@@ -226,7 +227,7 @@ python -m src.train \
     --resampling none
 ```
 
-### ULB benchmark with SMOTE
+### ULB Benchmark With SMOTE
 
 ```bash
 python -m src.train \
@@ -235,7 +236,7 @@ python -m src.train \
     --resampling smote
 ```
 
-Training performs schema validation, stratified splitting, dataset-specific encoding and optional training-set-only resampling.
+Training performs schema validation, stratified splitting, dataset-specific encoding, and optional training-set-only resampling.
 
 The evaluation reports:
 
@@ -253,7 +254,7 @@ For fraud detection, accuracy is not treated as the primary model-quality measur
 
 The original dataset was evaluated first and showed very weak predictive signal.
 
-### Original dataset — Random Forest + SMOTENC
+### Original Dataset — Random Forest + SMOTENC
 
 | Metric          | Result |
 | --------------- | -----: |
@@ -264,20 +265,20 @@ The original dataset was evaluated first and showed very weak predictive signal.
 | PR-AUC          |  0.064 |
 | ROC-AUC         |  0.477 |
 
-The result was not treated as a model-specific failure. Additional analysis of the original dataset showed very weak relationships between the available features and the fraud target.
+The result was not interpreted as a model-specific failure. Additional analysis of the original dataset showed very weak relationships between the available features and the fraud target.
 
 A second dataset was therefore introduced to provide a stronger fraud-detection benchmark.
 
-### ULB benchmark — Random Forest
+### ULB Benchmark — Random Forest
 
 | Configuration | ROC-AUC | PR-AUC | Fraud Precision | Fraud Recall | Fraud F1 |
 | ------------- | ------: | -----: | --------------: | -----------: | -------: |
 | No resampling |   0.963 |  0.873 |           0.941 |        0.816 |    0.874 |
 | SMOTE         |   0.964 |  0.875 |           0.835 |        0.827 |    0.831 |
 
-The ULB results demonstrate that the inference and evaluation pipeline can produce substantially stronger fraud-detection performance when the underlying dataset contains useful predictive signal.
+The ULB results show that the same inference and evaluation pipeline produces substantially stronger results when evaluated on a dataset with useful predictive signal.
 
-SMOTE produced a small improvement in ROC-AUC, PR-AUC and recall, but reduced precision and F1 at the default `0.5` decision threshold. Therefore, resampling is treated as an experimental configuration rather than an automatic improvement.
+SMOTE produced a small improvement in ROC-AUC, PR-AUC, and recall, but reduced precision and F1 at the default `0.5` decision threshold. Therefore, resampling is treated as an experimental configuration rather than an automatic improvement.
 
 ### Interpretation
 
@@ -342,7 +343,7 @@ This allows the registry's default active version and an explicitly selected eva
 
 ## Experiment Tracking
 
-Training records the:
+Training records:
 
 * dataset SHA-256 fingerprint
 * dataset name
@@ -364,7 +365,7 @@ Compare experiment runs with:
 python -m src.compare_experiments experiments/fraud-detection.jsonl
 ```
 
-The current JSONL approach provides a lightweight, dependency-free experiment record. MLflow can be evaluated later if shared experiment infrastructure or a dedicated tracking UI becomes necessary.
+The current JSONL approach provides a lightweight experiment-tracking format without requiring a dedicated tracking platform. MLflow can be evaluated later if shared experiment infrastructure or a dedicated tracking UI becomes necessary.
 
 ## Run the API
 
@@ -384,7 +385,7 @@ Interactive API documentation:
 http://127.0.0.1:8000/docs
 ```
 
-### Operational endpoints
+### Operational Endpoints
 
 ```text
 /health
@@ -393,7 +394,7 @@ http://127.0.0.1:8000/docs
 /metrics
 ```
 
-### Prediction endpoint
+### Prediction Endpoint
 
 ```text
 /predict
@@ -522,7 +523,7 @@ The deployed API should be treated as a demonstration environment rather than a 
 ## Environment Notes
 
 * Python **3.14** is used for development.
-* Production and development dependencies are pinned separately.
+* Production and development dependencies are maintained separately.
 * Datasets and locally trained model artifacts are excluded from version control.
 * The model registry is tracked, while locally generated `.joblib` artifacts are ignored.
 * The application can run locally with Uvicorn or inside a container.
@@ -553,5 +554,5 @@ Potential next steps include:
 * **Monitoring infrastructure** — export application and prediction metrics to a dedicated monitoring backend with dashboards and alerts.
 * **Hosted release automation** — automate versioned model deployment and rollback at the deployment layer.
 * **API evolution** — formal schema migrations and compatibility guarantees as the API changes.
-* **Experiment infrastructure** — evaluate MLflow if shared tracking, artifact storage or a team-wide experiment UI becomes necessary.
-* **Web UI improvements** — expand the transaction interface with better result explanations, validation feedback and model information.
+* **Experiment infrastructure** — evaluate MLflow if shared tracking, artifact storage, or a team-wide experiment UI becomes necessary.
+* **Web UI improvements** — expand the transaction interface with better result explanations, validation feedback, and model information.
