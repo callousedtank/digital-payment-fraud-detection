@@ -6,9 +6,13 @@ The project evolved from an initial digital-payment fraud detection prototype in
 
 ## Live Demo
 
-* **API:** https://digital-payment-fraud-detection.onrender.com
-* **Interactive API docs:** https://digital-payment-fraud-detection.onrender.com/docs
-* **Frontend:** Streamlit client runs locally; public deployment is pending.
+**API:** https://digital-payment-fraud-detection.onrender.com
+
+**Interactive API Docs:** https://digital-payment-fraud-detection.onrender.com/docs
+
+The deployed API exposes health, readiness, model metadata, metrics, and fraud prediction endpoints.
+
+**Frontend:** The Streamlit client currently runs locally and connects to the same `/predict` API. Public frontend deployment is planned.
 
 ## Highlights
 
@@ -21,55 +25,89 @@ The project evolved from an initial digital-payment fraud detection prototype in
 * **Production-shaped API** — FastAPI with Pydantic validation, structured request logging, latency tracking, health/readiness endpoints, metrics, and model/version metadata.
 * **Tested and CI-validated** — automated tests cover prediction, validation, model registry behavior, experiment tracking, and operational endpoints.
 * **Containerized services** — the inference API can be built and run with Docker or Podman.
-* **Web interface** — the separate Streamlit client sends requests to the same `/predict` inference endpoint.
+* **Web interface** — a separate Streamlit client sends requests to the same `/predict` inference endpoint.
 
-## Features
+## Architecture
 
-* Multiple dataset configurations
-* Dataset schema and target validation
-* Stratified train/test splitting
-* Dataset-specific categorical encoding
-* SMOTENC and SMOTE resampling
-* Random Forest and Logistic Regression training
-* Joblib model artifacts
-* Versioned model registry with rollback support
-* JSONL experiment tracking
-* Dataset SHA-256 fingerprinting
-* FastAPI `/predict` inference endpoint
-* Pydantic request validation
-* Unknown-category handling
-* Structured request and prediction logging
-* Request latency metrics
-* `/health`, `/ready`, `/model`, and `/metrics` endpoints
-* Schema and model version metadata
-* Automated API and infrastructure tests with Pytest
-* GitHub Actions CI
-* Containerized deployment
-* Docker Compose API and Streamlit client setup
+```text
+Dataset
+   ↓
+Dataset Configuration
+   ↓
+Schema Validation
+   ↓
+Preprocessing
+   ↓
+Train/Test Split
+   ↓
+Optional SMOTE / SMOTENC
+   ↓
+Model Training
+   ↓
+Evaluation
+   ↓
+Versioned Model Artifact
+   ↓
+Model Registry
+   ↓
+FastAPI Inference API
+   ↓
+Streamlit Client
+```
+
+The training pipeline is dataset-aware rather than tied to one fixed dataset. Dataset configuration determines the target column, identifier columns, dataset path, preprocessing behavior, and available resampling strategy.
+
+During inference, the API resolves a model version through the model registry rather than relying on whichever model happened to be trained most recently.
+
+This allows an evaluated model version to be activated or explicitly selected without retraining the model.
+
+## Tech Stack
+
+| Area                | Tools                          |
+| ------------------- | ------------------------------ |
+| Language            | Python                         |
+| Machine Learning    | scikit-learn, imbalanced-learn |
+| API                 | FastAPI, Pydantic, Uvicorn     |
+| Frontend            | Streamlit                      |
+| Testing             | Pytest                         |
+| Containers          | Docker, Podman, Docker Compose |
+| CI                  | GitHub Actions                 |
+| Deployment          | Render                         |
+| Experiment Tracking | JSONL                          |
+| Model Serialization | Joblib                         |
+| Data Processing     | pandas, NumPy                  |
 
 ## Project Structure
 
 ```text
 digital-payment-fraud-detection/
+│
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+│
 ├── app/
 │   └── main.py                  # FastAPI application
+│
 ├── frontend/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── streamlit_app.py         # Streamlit client
+│
 ├── data/
 │   ├── README.md                # Dataset information
 │   └── *.csv                    # Datasets (not tracked by Git)
+│
 ├── experiments/
 │   └── *.jsonl                  # Experiment records (not tracked by Git)
+│
 ├── models/
 │   ├── *.joblib                 # Locally trained model artifacts
 │   └── model_registry.json      # Model registry
+│
 ├── notebooks/
 │   └── fraud_detection.ipynb    # Exploratory notebook
+│
 ├── src/
 │   ├── datasets.py              # Dataset configuration and validation
 │   ├── preprocessing.py         # Data preprocessing
@@ -78,11 +116,14 @@ digital-payment-fraud-detection/
 │   ├── model_registry.py        # Model resolution and rollback
 │   ├── experiment_tracking.py   # Experiment recording
 │   └── compare_experiments.py   # Experiment comparison
+│
 ├── tests/
 │   ├── conftest.py
 │   ├── test_api.py
 │   ├── test_model_registry.py
-│   └── test_experiment_tracking.py
+│   ├── test_experiment_tracking.py
+│   └── test_preprocessing.py
+│
 ├── Dockerfile
 ├── docker-compose.yml
 ├── render.yaml
@@ -145,6 +186,8 @@ The project currently supports two datasets.
 
 ### Original Digital-Payment Dataset
 
+Place the dataset at:
+
 ```text
 data/Digital_Payment_Fraud_Detection_Dataset.csv
 ```
@@ -159,6 +202,8 @@ The original dataset contains:
 The identifier columns `transaction_id` and `user_id` are excluded during preprocessing.
 
 ### ULB Credit-Card Fraud Benchmark
+
+Place the dataset at:
 
 ```text
 data/creditcard.csv
@@ -236,7 +281,18 @@ python -m src.train \
     --resampling smote
 ```
 
-Training performs schema validation, stratified splitting, dataset-specific encoding, and optional training-set-only resampling.
+Training performs:
+
+1. Schema validation
+2. Stratified train/test splitting
+3. Dataset-specific preprocessing
+4. Dataset-specific categorical encoding
+5. Optional training-set-only resampling
+6. Model training
+7. Evaluation
+8. Versioned artifact creation
+9. Model registry updates
+10. Experiment tracking
 
 The evaluation reports:
 
@@ -250,11 +306,11 @@ The evaluation reports:
 
 For fraud detection, accuracy is not treated as the primary model-quality measure because the positive class is highly imbalanced.
 
-## Dataset Benchmark Results
-
-The original dataset was evaluated first and showed very weak predictive signal.
+## Evaluation Results
 
 ### Original Dataset — Random Forest + SMOTENC
+
+The original dataset was evaluated first and showed very weak predictive signal.
 
 | Metric          | Result |
 | --------------- | -----: |
@@ -265,7 +321,7 @@ The original dataset was evaluated first and showed very weak predictive signal.
 | PR-AUC          |  0.064 |
 | ROC-AUC         |  0.477 |
 
-The result was not interpreted as a model-specific failure. Additional analysis of the original dataset showed very weak relationships between the available features and the fraud target.
+The result was not treated as evidence of a model-specific failure. Additional analysis of the original dataset showed very weak relationships between the available features and the fraud target.
 
 A second dataset was therefore introduced to provide a stronger fraud-detection benchmark.
 
@@ -286,9 +342,9 @@ The benchmark separates two different concerns:
 
 ```text
 Model / pipeline behavior
-        +
-Dataset quality
-        ↓
+          +
+     Dataset quality
+          ↓
 Observed evaluation result
 ```
 
@@ -311,13 +367,13 @@ Model artifacts are excluded from normal Git tracking.
 
 The registry records model metadata such as:
 
-* model version
-* artifact path
-* classifier
-* dataset
-* training configuration
-* validation metrics
-* validation status
+* Model version
+* Artifact path
+* Classifier
+* Dataset
+* Training configuration
+* Validation metrics
+* Validation status
 
 An explicit version can be supplied during training:
 
@@ -345,13 +401,13 @@ This allows the registry's default active version and an explicitly selected eva
 
 Training records:
 
-* dataset SHA-256 fingerprint
-* dataset name
-* model configuration
-* resampling configuration
-* feature set
-* validation metrics
-* training configuration
+* Dataset SHA-256 fingerprint
+* Dataset name
+* Model configuration
+* Resampling configuration
+* Feature set
+* Validation metrics
+* Training configuration
 
 Experiment records are stored in:
 
@@ -365,7 +421,9 @@ Compare experiment runs with:
 python -m src.compare_experiments experiments/fraud-detection.jsonl
 ```
 
-The current JSONL approach provides a lightweight experiment-tracking format without requiring a dedicated tracking platform. MLflow can be evaluated later if shared experiment infrastructure or a dedicated tracking UI becomes necessary.
+The current JSONL approach provides a lightweight experiment-tracking format without requiring a dedicated tracking platform.
+
+MLflow can be evaluated later if shared experiment infrastructure or a dedicated tracking UI becomes necessary.
 
 ## Run the API
 
@@ -384,6 +442,8 @@ Interactive API documentation:
 ```text
 http://127.0.0.1:8000/docs
 ```
+
+**API schema version:** `2.1.0`
 
 ### Operational Endpoints
 
@@ -419,13 +479,42 @@ Invalid requests can be rejected when they contain:
 
 The `/model` endpoint exposes the currently resolved model metadata and feature schema.
 
-Run the separate Streamlit client for the browser-based transaction interface:
+The `/predict` endpoint supports explicit model-version selection through the API's model resolution mechanism.
+
+## Streamlit Client
+
+The project includes a separate Streamlit client for interacting with the inference API.
+
+Start it locally with:
 
 ```bash
 streamlit run frontend/streamlit_app.py
 ```
 
-Set `API_URL` to point the client at a different API endpoint.
+The client connects to the API through the `API_URL` environment variable.
+
+For example:
+
+```bash
+API_URL=http://127.0.0.1:8000 streamlit run frontend/streamlit_app.py
+```
+
+### Supported Dataset Modes
+
+The interface allows the user to select between:
+
+* **Original Digital Payment**
+* **ULB Credit Card Benchmark**
+
+For the ULB benchmark, the interface works with dataset rows/samples rather than requiring users to manually enter the internal `V1`–`V28` feature columns.
+
+A transaction can be selected automatically or manually, submitted to the API, and evaluated through the corresponding inference pipeline.
+
+The client then displays the prediction and fraud probability returned by the API.
+
+For benchmark transactions where ground truth is available, the corresponding ground-truth result can also be shown after prediction.
+
+The frontend does not contain a separate fraud-detection model. It acts as a client of the FastAPI inference service.
 
 ## Testing
 
@@ -448,11 +537,9 @@ The current test suite covers:
 * Metrics endpoint
 * API behavior without requiring the production model artifact during CI
 
-Current local verification:
+The test suite currently contains **16 tests** covering preprocessing, prediction, validation, model registry behavior, experiment tracking, and API operations.
 
-```text
-16 passed
-```
+GitHub Actions provides the authoritative CI verification for the repository.
 
 ## Containerized Setup
 
@@ -520,6 +607,64 @@ The API exposes:
 
 The deployed API should be treated as a demonstration environment rather than a production fraud-decision service.
 
+The public Streamlit frontend is not currently deployed.
+
+## Engineering Decisions
+
+### Why two datasets?
+
+The original digital-payment dataset showed weak predictive signal.
+
+Instead of treating poor metrics as purely a model problem, the project introduced the ULB credit-card fraud benchmark to separate dataset limitations from model and pipeline behavior.
+
+This allows the same training, evaluation, versioning, and inference workflow to be evaluated against datasets with substantially different predictive characteristics.
+
+### Why PR-AUC?
+
+Fraud detection is a highly imbalanced classification problem.
+
+Accuracy can therefore remain high even when positive-class detection is poor. PR-AUC, precision, recall, and F1 provide additional information about positive-class performance.
+
+ROC-AUC is also reported, but it is not used as the only measure of model quality.
+
+### Why model versioning?
+
+Inference should not depend on whichever model was trained most recently.
+
+The model registry allows evaluated model versions to be selected and reactivated explicitly without retraining.
+
+This also makes model rollback possible when a previously validated version needs to be restored.
+
+### Why dataset-specific preprocessing?
+
+The two datasets have different schemas, feature types, target columns, and identifier fields.
+
+The pipeline therefore keeps dataset configuration explicit rather than forcing both datasets through identical hardcoded preprocessing.
+
+This allows the same training framework to support multiple datasets while preserving dataset-specific behavior.
+
+### Why training-set-only resampling?
+
+SMOTE and SMOTENC are applied only after the train/test split.
+
+This prevents synthetic samples generated from the test set from influencing model training and keeps evaluation data separate from the resampling process.
+
+### Why JSONL experiment tracking?
+
+The project currently needs lightweight local experiment tracking rather than a separate experiment-management service.
+
+JSONL provides a simple append-oriented format for storing dataset fingerprints, configurations, feature information, and evaluation metrics.
+
+A dedicated platform such as MLflow can be considered if the project later requires shared experiment infrastructure, artifact management, or a tracking UI.
+
+### Why a registry instead of a hardcoded model path?
+
+A hardcoded model path couples the API to one artifact.
+
+The registry provides an explicit mapping between model versions, artifacts, datasets, training configurations, and validation status.
+
+This makes model selection and rollback part of the application workflow rather than manual file replacement.
+
 ## Environment Notes
 
 * Python **3.14** is used for development.
@@ -543,6 +688,7 @@ Important limitations include:
 * The deployed system should not be used to make real financial decisions.
 * Threshold selection has not been optimized for a specific operational fraud-loss/cost tradeoff.
 * Model monitoring and automated promotion gates are not yet implemented as a complete production monitoring system.
+* The public Streamlit frontend is not currently deployed.
 
 ## Future Enhancements
 
