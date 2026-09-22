@@ -1,16 +1,20 @@
-import math
 import json
 import logging
+import math
 import os
 import time
 from collections import Counter
+from functools import lru_cache
 from threading import Lock
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
 
-from src.model_registry import resolve_model_path
+from src.model_registry import (
+    load_registry,
+    resolve_model_path,
+)
 from src.predict import load_model, predict_transaction_details
 
 
@@ -26,7 +30,10 @@ MODEL_REGISTRY_PATH = os.getenv(
     "models/model_registry.json",
 )
 
-API_SCHEMA_VERSION = "2.0.0"
+API_SCHEMA_VERSION = "2.1.0"
+
+
+logger = logging.getLogger("fraud_api")
 
 
 class JsonFormatter(logging.Formatter):
@@ -51,8 +58,6 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload)
 
 
-logger = logging.getLogger("fraud_api")
-
 if not logger.handlers:
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
@@ -65,10 +70,12 @@ logger.propagate = False
 metrics = Counter()
 metrics_lock = Lock()
 
+
 app = FastAPI(
     title="Digital Payment Fraud Detection API",
     version=API_SCHEMA_VERSION,
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -84,23 +91,45 @@ app.add_middleware(
 )
 
 
-model_path, resolved_model_version = resolve_model_path(
-    MODEL_VERSION,
-    MODEL_REGISTRY_PATH,
-    LEGACY_MODEL_PATH,
-)
+def resolve_artifact(version=None):
+    selected_version = version or MODEL_VERSION
 
-if not model_path.exists():
-    raise RuntimeError(
-        f"Model artifact not found: {model_path}. "
-        "Run `python -m src.train` before starting the API."
+    model_path, resolved_version = resolve_model_path(
+        selected_version,
+        MODEL_REGISTRY_PATH,
+        LEGACY_MODEL_PATH,
+    )
+
+    if not model_path.exists():
+        raise RuntimeError(
+            f"Model artifact not found: {model_path}. "
+            "Run `python -m src.train` before starting the API."
+        )
+
+    return model_path, resolved_version
+
+
+@lru_cache(maxsize=16)
+def load_registered_model(version):
+    model_path, resolved_version = resolve_artifact(
+        version
+    )
+
+    artifact = load_model(model_path)
+
+    return artifact, resolved_version
+
+
+def get_model(version=None):
+    requested_version = version or MODEL_VERSION
+
+    return load_registered_model(
+        requested_version
     )
 
 
-artifact = load_model(model_path)
-
-FEATURE_NAMES = artifact["feature_names"]
-MODEL_METADATA = artifact.get("metadata", {})
+# Load the default model once for metadata/readiness endpoints.
+default_artifact, default_model_version = get_model()
 
 
 class PredictionRequest(BaseModel):
@@ -110,11 +139,20 @@ class PredictionRequest(BaseModel):
     )
 
     features: dict
+    model_version: str | None = None
 
 
-def validate_request_features(features):
-    expected_features = set(FEATURE_NAMES)
-    received_features = set(features)
+def validate_request_features(
+    features,
+    feature_names,
+):
+    expected_features = set(
+        feature_names
+    )
+
+    received_features = set(
+        features
+    )
 
     missing_features = sorted(
         expected_features - received_features
@@ -126,38 +164,52 @@ def validate_request_features(features):
 
     if missing_features:
         raise ValueError(
-            f"Missing required features: {missing_features}"
+            f"Missing required features: "
+            f"{missing_features}"
         )
 
     if extra_features:
         raise ValueError(
-            f"Unexpected features: {extra_features}"
+            f"Unexpected features: "
+            f"{extra_features}"
         )
 
     for name, value in features.items():
         if isinstance(value, bool):
             continue
 
-        if isinstance(value, (int, float)) and not math.isfinite(value):
+        if isinstance(
+            value,
+            (int, float),
+        ) and not math.isfinite(value):
             raise ValueError(
-                f"Feature '{name}' contains a non-finite value"
+                f"Feature '{name}' contains "
+                "a non-finite value"
             )
 
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def log_requests(
+    request: Request,
+    call_next,
+):
     started_at = time.perf_counter()
 
     try:
-        response = await call_next(request)
+        response = await call_next(
+            request
+        )
 
     except Exception:
         latency_ms = (
-            time.perf_counter() - started_at
+            time.perf_counter()
+            - started_at
         ) * 1000
 
         with metrics_lock:
-            metrics["api_errors_total"] += 1
+            metrics[
+                "api_errors_total"
+            ] += 1
 
         logger.exception(
             "request_failed",
@@ -175,20 +227,27 @@ async def log_requests(request: Request, call_next):
         raise
 
     latency_ms = (
-        time.perf_counter() - started_at
+        time.perf_counter()
+        - started_at
     ) * 1000
 
     with metrics_lock:
-        metrics["api_requests_total"] += 1
+        metrics[
+            "api_requests_total"
+        ] += 1
+
         metrics[
             f"api_responses_{response.status_code}_total"
         ] += 1
+
         metrics[
             "api_request_latency_ms_total"
         ] += latency_ms
 
         if response.status_code >= 500:
-            metrics["api_errors_total"] += 1
+            metrics[
+                "api_errors_total"
+            ] += 1
 
     logger.info(
         "request_completed",
@@ -209,7 +268,9 @@ async def log_requests(request: Request, call_next):
 @app.get("/")
 def root():
     return {
-        "message": "Digital Payment Fraud Detection API"
+        "message": (
+            "Digital Payment Fraud Detection API"
+        )
     }
 
 
@@ -222,37 +283,55 @@ def health():
 
 @app.get("/ready")
 def ready():
-    return {
-        "status": "ready",
-        "model_version": MODEL_METADATA.get(
-            "model_version",
-            resolved_model_version,
-        ),
-        "schema_version": API_SCHEMA_VERSION,
-        "feature_count": len(FEATURE_NAMES),
-        "classifier": MODEL_METADATA.get(
-            "classifier"
-        ),
-        "dataset": MODEL_METADATA.get(
-            "training_configuration",
-            {},
-        ).get("dataset"),
-    }
+    metadata = default_artifact.get(
+        "metadata",
+        {},
+    )
 
-
-@app.get("/model")
-def model_info():
-    training_configuration = MODEL_METADATA.get(
+    training_configuration = metadata.get(
         "training_configuration",
         {},
     )
 
     return {
-        "model_version": MODEL_METADATA.get(
+        "status": "ready",
+        "model_version": metadata.get(
             "model_version",
-            resolved_model_version,
+            default_model_version,
         ),
-        "classifier": MODEL_METADATA.get(
+        "schema_version": API_SCHEMA_VERSION,
+        "feature_count": len(
+            default_artifact[
+                "feature_names"
+            ]
+        ),
+        "classifier": metadata.get(
+            "classifier"
+        ),
+        "dataset": training_configuration.get(
+            "dataset"
+        ),
+    }
+
+
+@app.get("/model")
+def model_info():
+    metadata = default_artifact.get(
+        "metadata",
+        {},
+    )
+
+    training_configuration = metadata.get(
+        "training_configuration",
+        {},
+    )
+
+    return {
+        "model_version": metadata.get(
+            "model_version",
+            default_model_version,
+        ),
+        "classifier": metadata.get(
             "classifier"
         ),
         "dataset": training_configuration.get(
@@ -261,9 +340,73 @@ def model_info():
         "resampling": training_configuration.get(
             "resampling"
         ),
-        "feature_count": len(FEATURE_NAMES),
-        "feature_names": FEATURE_NAMES,
+        "feature_count": len(
+            default_artifact[
+                "feature_names"
+            ]
+        ),
+        "feature_names": default_artifact[
+            "feature_names"
+        ],
         "schema_version": API_SCHEMA_VERSION,
+    }
+
+
+@app.get("/models")
+def available_models():
+    try:
+        registry = load_registry(
+            MODEL_REGISTRY_PATH
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Failed to load model registry: "
+                f"{exc}"
+            ),
+        ) from exc
+
+    models = []
+
+    for version, entry in registry.get(
+        "models",
+        {},
+    ).items():
+        metadata = entry.get(
+            "metadata",
+            {},
+        )
+
+        training_configuration = metadata.get(
+            "training_configuration",
+            {},
+        )
+
+        models.append(
+            {
+                "model_version": version,
+                "dataset": training_configuration.get(
+                    "dataset"
+                ),
+                "classifier": metadata.get(
+                    "classifier"
+                ),
+                "resampling": training_configuration.get(
+                    "resampling"
+                ),
+                "validation_status": entry.get(
+                    "validation_status"
+                ),
+            }
+        )
+
+    return {
+        "active_version": registry.get(
+            "active_version"
+        ),
+        "models": models,
     }
 
 
@@ -303,17 +446,26 @@ def get_metrics():
         ),
     ]
 
-    for key, value in sorted(snapshot.items()):
-        if key.startswith("api_responses_"):
+    for key, value in sorted(
+        snapshot.items()
+    ):
+        if key.startswith(
+            "api_responses_"
+        ):
             status_code = (
                 key
-                .removeprefix("api_responses_")
-                .removesuffix("_total")
+                .removeprefix(
+                    "api_responses_"
+                )
+                .removesuffix(
+                    "_total"
+                )
             )
 
             lines.append(
                 "fraud_api_responses_total"
-                f'{{status_code="{status_code}"}} {value}'
+                f'{{status_code="{status_code}"}} '
+                f"{value}"
             )
 
     return Response(
@@ -323,31 +475,76 @@ def get_metrics():
 
 
 @app.post("/predict")
-def predict(request: PredictionRequest):
+def predict(
+    request: PredictionRequest,
+):
     try:
-        validate_request_features(request.features)
+        artifact, resolved_version = (
+            get_model(
+                request.model_version
+            )
+        )
+
+        validate_request_features(
+            request.features,
+            artifact[
+                "feature_names"
+            ],
+        )
+
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         ) from exc
 
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to load requested "
+                f"model: {exc}"
+            ),
+        ) from exc
+
     started_at = time.perf_counter()
 
-    prediction = predict_transaction_details(
-        request.features,
-        artifact,
+    prediction = (
+        predict_transaction_details(
+            request.features,
+            artifact,
+        )
     )
 
     latency_ms = (
-        time.perf_counter() - started_at
+        time.perf_counter()
+        - started_at
     ) * 1000
 
     with metrics_lock:
-        metrics["predictions_total"] += 1
+        metrics[
+            "predictions_total"
+        ] += 1
+
         metrics[
             "prediction_latency_ms_total"
         ] += latency_ms
+
+    metadata = artifact.get(
+        "metadata",
+        {},
+    )
+
+    training_configuration = metadata.get(
+        "training_configuration",
+        {},
+    )
 
     logger.info(
         "prediction_completed",
@@ -364,9 +561,15 @@ def predict(request: PredictionRequest):
 
     return {
         **prediction,
-        "schema_version": API_SCHEMA_VERSION,
-        "model_version": MODEL_METADATA.get(
+        "model_version": metadata.get(
             "model_version",
-            resolved_model_version,
+            resolved_version,
         ),
+        "dataset": training_configuration.get(
+            "dataset"
+        ),
+        "resampling": training_configuration.get(
+            "resampling"
+        ),
+        "schema_version": API_SCHEMA_VERSION,
     }
