@@ -38,7 +38,7 @@ def test_predict_valid_transaction():
     assert data["fraud_prediction"] in [0, 1]
     assert data["fraud_probability"] == 0.1
     assert data["decision_threshold"] == 0.5
-    assert data["schema_version"] == "2.0.0"
+    assert data["schema_version"] == "2.1.0"
     assert data["model_version"] == "test"
 
 
@@ -83,7 +83,7 @@ def test_health_and_readiness():
 
     assert readiness["status"] == "ready"
     assert readiness["model_version"] == "test"
-    assert readiness["schema_version"] == "2.0.0"
+    assert readiness["schema_version"] == "2.1.0"
     assert readiness["feature_count"] == 12
     assert readiness["classifier"] == "TestModel"
 
